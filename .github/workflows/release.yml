@@ -1,0 +1,39 @@
+---
+name: release
+
+on:  # yamllint disable-line rule:truthy
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    name: Build and release binaries
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Install dependencies
+        run: go mod download
+      - name: Install golangci-lint
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | \
+            sh -s -- -b $(go env GOPATH)/bin v2.6.1
+      - name: Build binaries
+        run: make all
+      - name: Create SHA256 checksums
+        run: make checksum
+      - name: Upload binaries and checksums
+        uses: alexellis/upload-assets@0.4.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          asset_paths: '["bin/*"]'

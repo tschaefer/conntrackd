@@ -1,0 +1,25 @@
+/*
+Copyright (c) 2025 Tobias Schäfer. All rights reserved.
+Licensed under the MIT License, see LICENSE file in the project root for details.
+*/
+package sink
+
+import (
+	"log/slog"
+
+	slogjournal "github.com/tschaefer/slog-journal"
+)
+
+type Journal struct {
+	Enable bool
+}
+
+func (j *Journal) TargetJournal(options *slog.HandlerOptions) (slog.Handler, error) {
+	slog.Debug("Initializing systemd journal sink.")
+
+	slogjournal.FieldPrefix = "EVENT"
+	o := &slogjournal.Option{
+		Level: options.Level,
+	}
+	return o.NewJournalHandler(), nil
+}

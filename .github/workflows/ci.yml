@@ -1,0 +1,35 @@
+---
+name: ci
+
+on:  # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - 'main'
+  pull_request:
+    branches:
+      - 'main'
+
+jobs:
+  ci:
+    name: Continuous Integration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Install dependencies
+        run: go mod download
+      - name: Install golangci-lint
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | \
+            sh -s -- -b $(go env GOPATH)/bin v2.6.1
+      - name: Check formatting
+        run: gofmt -l .
+      - name: Run linters
+        run: golangci-lint run
+      - name: Run tests
+        run: go test -v ./...
