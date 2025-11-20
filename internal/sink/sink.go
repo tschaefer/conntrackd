@@ -15,6 +15,7 @@ type Sink struct {
 	Journal Journal
 	Syslog  Syslog
 	Loki    Loki
+	Stream  Stream
 }
 
 type SinkTarget func(*slog.HandlerOptions) (slog.Handler, error)
@@ -49,6 +50,15 @@ func (s *Sink) Initialize() (*slog.Logger, error) {
 		handler, err := s.Loki.TargetLoki(options)
 		if err != nil {
 			slog.Warn("Failed to initialize loki sink", "error", err)
+		} else {
+			handlers = append(handlers, handler)
+		}
+	}
+
+	if s.Stream.Enable {
+		handler, err := s.Stream.TargetStream(options)
+		if err != nil {
+			slog.Warn("Failed to initialize stream sink", "error", err)
 		} else {
 			handlers = append(handlers, handler)
 		}

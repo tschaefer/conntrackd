@@ -26,6 +26,7 @@ var (
 	validLogFormats    = []string{"text", "json"}
 	validSyslogSchemes = []string{"udp", "tcp", "unix", "unixgram", "unixpacket"}
 	validLokiSchemes   = []string{"http", "https"}
+	validStreamWriters = []string{"stdout", "stderr", "discard"}
 )
 
 var runCmd = &cobra.Command{
@@ -34,7 +35,8 @@ var runCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		if !srv.Sink.Journal.Enable &&
 			!srv.Sink.Syslog.Enable &&
-			!srv.Sink.Loki.Enable {
+			!srv.Sink.Loki.Enable &&
+			!srv.Sink.Stream.Enable {
 			cobra.CheckErr(fmt.Errorf("at least one sink must be enabled"))
 		}
 
@@ -42,6 +44,9 @@ var runCmd = &cobra.Command{
 		cobra.CheckErr(err)
 
 		err = validateStringFlag("sink.loki.address", srv.Sink.Loki.Address, []string{})
+		cobra.CheckErr(err)
+
+		err = validateStringFlag("sink.stream.writer", srv.Sink.Stream.Writer, validStreamWriters)
 		cobra.CheckErr(err)
 
 		err = validateStringSliceFlag("filter.include.types", srv.Filter.EventTypes, validEventTypes)
@@ -89,6 +94,8 @@ func init() {
 	runCmd.Flags().BoolVar(&srv.Sink.Loki.Enable, "sink.loki.enable", false, "Enable Loki sink")
 	runCmd.Flags().StringVar(&srv.Sink.Loki.Address, "sink.loki.address", "http://localhost:3100", "Loki address")
 	runCmd.Flags().StringSliceVar(&srv.Sink.Loki.Labels, "sink.loki.labels", nil, "Additional labels for Loki sink in key=value format")
+	runCmd.Flags().BoolVar(&srv.Sink.Stream.Enable, "sink.stream.enable", false, "Enable stream sink")
+	runCmd.Flags().StringVar(&srv.Sink.Stream.Writer, "sink.stream.writer", "stdout", "Stream writer (stdout,stderr,discard)")
 
 	_ = runCmd.RegisterFlagCompletionFunc("service.log.level", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return validLogLevels, cobra.ShellCompDirectiveNoFileComp
@@ -108,6 +115,10 @@ func init() {
 
 	_ = runCmd.RegisterFlagCompletionFunc("filter.include.destinations", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return validDestinations, cobra.ShellCompDirectiveNoFileComp
+	})
+
+	_ = runCmd.RegisterFlagCompletionFunc("sink.stream.writer", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return validStreamWriters, cobra.ShellCompDirectiveNoFileComp
 	})
 }
 
