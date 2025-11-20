@@ -49,22 +49,22 @@ var runCmd = &cobra.Command{
 		err = validateStringFlag("sink.stream.writer", srv.Sink.Stream.Writer, validStreamWriters)
 		cobra.CheckErr(err)
 
-		err = validateStringSliceFlag("filter.include.types", srv.Filter.EventTypes, validEventTypes)
+		err = validateStringSliceFlag("filter.types", srv.Filter.EventTypes, validEventTypes)
 		cobra.CheckErr(err)
 
-		err = validateStringSliceFlag("filter.include.protocols", srv.Filter.Protocols, validProtocols)
+		err = validateStringSliceFlag("filter.protocols", srv.Filter.Protocols, validProtocols)
 		cobra.CheckErr(err)
 
-		err = validateStringSliceFlag("filter.include.destinations", srv.Filter.Destinations, validNetworks)
+		err = validateStringSliceFlag("filter.destination.networks", srv.Filter.Networks.Destinations, validNetworks)
 		cobra.CheckErr(err)
 
-		err = validateStringSliceFlag("filter.include.sources", srv.Filter.Destinations, validNetworks)
+		err = validateStringSliceFlag("filter.source.networks", srv.Filter.Networks.Sources, validNetworks)
 		cobra.CheckErr(err)
 
-		err = validateStringSliceFlag("filter.exclude.destination.addresses", srv.Filter.Addresses.Destinations, []string{})
+		err = validateStringSliceFlag("filter.destination.addresses", srv.Filter.Addresses.Destinations, []string{})
 		cobra.CheckErr(err)
 
-		err = validateStringSliceFlag("filter.exclude.source.addresses", srv.Filter.Addresses.Sources, []string{})
+		err = validateStringSliceFlag("filter.source.addresses", srv.Filter.Addresses.Sources, []string{})
 		cobra.CheckErr(err)
 
 		err = validateStringFlag("service.log.level", srv.Logger.Level, validLogLevels)
@@ -86,12 +86,12 @@ var runCmd = &cobra.Command{
 }
 
 func init() {
-	runCmd.Flags().StringSliceVar(&srv.Filter.EventTypes, "filter.include.types", nil, "Filter by event type (NEW,UPDATE,DESTROY)")
-	runCmd.Flags().StringSliceVar(&srv.Filter.Protocols, "filter.include.protocols", nil, "Filter by protocol (TCP,UDP)")
-	runCmd.Flags().StringSliceVar(&srv.Filter.Destinations, "filter.include.destinations", nil, "Filter by destination networks (PUBLIC,PRIVATE,LOCAL,MULTICAST)")
-	runCmd.Flags().StringSliceVar(&srv.Filter.Sources, "filter.include.sources", nil, "Filter by sources networks (PUBLIC,PRIVATE,LOCAL,MULTICAST)")
-	runCmd.Flags().StringSliceVar(&srv.Filter.Addresses.Destinations, "filter.exclude.destination.addresses", nil, "Exclude specific destination IP addresses")
-	runCmd.Flags().StringSliceVar(&srv.Filter.Addresses.Sources, "filter.exclude.source.addresses", nil, "Exclude specific source IP addresses")
+	runCmd.Flags().StringSliceVar(&srv.Filter.EventTypes, "filter.types", nil, "Filter by event type (NEW,UPDATE,DESTROY)")
+	runCmd.Flags().StringSliceVar(&srv.Filter.Protocols, "filter.protocols", nil, "Filter by protocol (TCP,UDP)")
+	runCmd.Flags().StringSliceVar(&srv.Filter.Networks.Destinations, "filter.destination.networks", nil, "Filter by destination networks (PUBLIC,PRIVATE,LOCAL,MULTICAST)")
+	runCmd.Flags().StringSliceVar(&srv.Filter.Networks.Sources, "filter.source.networks", nil, "Filter by sources networks (PUBLIC,PRIVATE,LOCAL,MULTICAST)")
+	runCmd.Flags().StringSliceVar(&srv.Filter.Addresses.Destinations, "filter.destination.addresses", nil, "Filter by destination IP addresses")
+	runCmd.Flags().StringSliceVar(&srv.Filter.Addresses.Sources, "filter.source.addresses", nil, "Filter by source IP addresses")
 	runCmd.Flags().StringVar(&srv.Logger.Format, "service.log.format", "", "Log format (text,json)")
 	runCmd.Flags().StringVar(&srv.Logger.Level, "service.log.level", "", "Log level (debug,info)")
 	runCmd.Flags().StringVar(&srv.GeoIP.Database, "geoip.database", "", "Path to GeoIP database")
@@ -113,19 +113,19 @@ func init() {
 		return validLogFormats, cobra.ShellCompDirectiveNoFileComp
 	})
 
-	_ = runCmd.RegisterFlagCompletionFunc("filter.include.types", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	_ = runCmd.RegisterFlagCompletionFunc("filter.types", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return validEventTypes, cobra.ShellCompDirectiveNoFileComp
 	})
 
-	_ = runCmd.RegisterFlagCompletionFunc("filter.include.protocols", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	_ = runCmd.RegisterFlagCompletionFunc("filter.protocols", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return validProtocols, cobra.ShellCompDirectiveNoFileComp
 	})
 
-	_ = runCmd.RegisterFlagCompletionFunc("filter.include.destinations", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	_ = runCmd.RegisterFlagCompletionFunc("filter.destination.networks", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return validNetworks, cobra.ShellCompDirectiveNoFileComp
 	})
 
-	_ = runCmd.RegisterFlagCompletionFunc("filter.include.sources", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	_ = runCmd.RegisterFlagCompletionFunc("filter.source.networks", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return validNetworks, cobra.ShellCompDirectiveNoFileComp
 	})
 
@@ -135,7 +135,7 @@ func init() {
 }
 
 func validateStringSliceFlag(flag string, values []string, validValues []string) error {
-	if flag == "filter.exclude.source.addresses" || flag == "filter.exclude.destination.addresses" {
+	if flag == "filter.source.addresses" || flag == "filter.destination.addresses" {
 		for _, v := range values {
 			if _, err := netip.ParseAddr(v); err != nil {
 				return fmt.Errorf("invalid IP address '%s' for '--%s'", v, flag)
