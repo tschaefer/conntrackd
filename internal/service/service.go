@@ -66,10 +66,11 @@ func (s *Service) handler(geo *geoip.Reader, sink *slog.Logger) error {
 				if !ok {
 					return nil
 				}
-				if !s.Filter.Apply(event) {
-					continue
-				}
-				record.Record(event, geo, sink)
+				go func() {
+					if s.Filter.Apply(event) {
+						record.Record(event, geo, sink)
+					}
+				}()
 			}
 		}
 	})
