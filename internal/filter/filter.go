@@ -22,11 +22,17 @@ type FilterNetworks struct {
 	Sources      []string
 }
 
+type FilterPorts struct {
+	Destinations []uint
+	Sources      []uint
+}
+
 type Filter struct {
 	EventTypes []string
 	Protocols  []string
 	Networks   FilterNetworks
 	Addresses  FilterAddresses
+	Ports      FilterPorts
 }
 
 func (f *Filter) eventType(event conntrack.Event) bool {
@@ -157,6 +163,22 @@ func (f *Filter) eventAddressSource(event conntrack.Event) bool {
 	return slices.Contains(f.Addresses.Sources, event.Flow.TupleOrig.IP.SourceAddress.String())
 }
 
+func (f *Filter) eventPortDestination(event conntrack.Event) bool {
+	if len(f.Ports.Destinations) == 0 {
+		return false
+	}
+
+	return slices.Contains(f.Ports.Destinations, uint(event.Flow.TupleOrig.Proto.DestinationPort))
+}
+
+func (f *Filter) eventPortSource(event conntrack.Event) bool {
+	if len(f.Ports.Sources) == 0 {
+		return false
+	}
+
+	return slices.Contains(f.Ports.Sources, uint(event.Flow.TupleOrig.Proto.SourcePort))
+}
+
 func (f *Filter) Apply(event conntrack.Event) bool {
 	if f.eventType(event) {
 		return true
@@ -179,6 +201,14 @@ func (f *Filter) Apply(event conntrack.Event) bool {
 	}
 
 	if f.eventAddressSource(event) {
+		return true
+	}
+
+	if f.eventPortDestination(event) {
+		return true
+	}
+
+	if f.eventPortSource(event) {
 		return true
 	}
 

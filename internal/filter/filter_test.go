@@ -179,4 +179,68 @@ func Test_Filter(t *testing.T) {
 	}
 	matched = f.Apply(event)
 	assert.False(t, matched, "source network filter MULTICAST")
+
+	f = &Filter{
+		Addresses: FilterAddresses{
+			Destinations: []string{"78.47.60.169"},
+		},
+	}
+	matched = f.Apply(event)
+	assert.True(t, matched, "destination address filter match")
+
+	f = &Filter{
+		Addresses: FilterAddresses{
+			Destinations: []string{"78.47.60.170"},
+		},
+	}
+	matched = f.Apply(event)
+	assert.False(t, matched, "destination address filter no match")
+
+	f = &Filter{
+		Addresses: FilterAddresses{
+			Sources: []string{"10.19.80.100"},
+		},
+	}
+	matched = f.Apply(event)
+	assert.True(t, matched, "source address filter match")
+
+	f = &Filter{
+		Addresses: FilterAddresses{
+			Sources: []string{"10.19.80.200"},
+		},
+	}
+	matched = f.Apply(event)
+	assert.False(t, matched, "source address filter no match")
+
+	f = &Filter{
+		Ports: FilterPorts{
+			Destinations: []uint{443},
+		},
+	}
+	matched = f.Apply(event)
+	assert.True(t, matched, "destination port filter match")
+
+	f = &Filter{
+		Ports: FilterPorts{
+			Destinations: []uint{80},
+		},
+	}
+	matched = f.Apply(event)
+	assert.False(t, matched, "destination port filter no match")
+
+	f = &Filter{
+		Ports: FilterPorts{
+			Sources: []uint{4711},
+		},
+	}
+	matched = f.Apply(event)
+	assert.True(t, matched, "source port filter match")
+
+	f = &Filter{
+		Ports: FilterPorts{
+			Sources: []uint{1234},
+		},
+	}
+	matched = f.Apply(event)
+	assert.False(t, matched, "source port filter no match")
 }

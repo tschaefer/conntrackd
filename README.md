@@ -49,26 +49,30 @@ For further configuration, see the command-line options below.
 | `--filter.types`                 | Filter by event types              | NEW,UPDATE,DESTROY                     |
 | `--filter.destination.addresses` | Filter by destination IP addresses |                                        |
 | `--filter.source.addresses`      | Filter by source IP addresses      |                                        |
+| `--filter.destination.ports`     | Filter by destination ports        |                                        |
+| `--filter.source.ports`          | Filter by source ports             |                                        |
 | `--geoip.database`               | Path to GeoIP database             |                                        |
 | `--service.log.format`           | Log format                         | json,text; default: text               |
 | `--service.log.level`            | Log level                          | trace,debug,info,error; default: info  |
 | `--sink.journal.enable`          | Enable journald sink               |                                        |
 | `--sink.syslog.enable`           | Enable syslog sink                 |                                        |
 | `--sink.enable.loki`             | Enable Loki sink                   |                                        |
+| `--sink.stream.enable`           | Enable stream sink                 |                                        |
 | `--sink.syslog.address`          | Syslog address                     | default: udp://localhost:514           |
 | `--sink.loki.address`            | Loki address                       | default: http://localhost:3100         |
 | `--sink.loki.labels`             | Loki labels                        | comma seperated key=value pairs        |
-| `--sink.stream.enable`           | Enable stream sink                 |                                        |
 | `--sink.stream.writer`           | Stream writer type                 | stdout,stderr,discard; default: stdout |
+
+All filters are exclusive; if any filter is not set, all related events are processed.
 
 Example run:
 
 ```bash
 sudo conntrackd run \
   --geoip.database /usr/local/share/GeoLite2-City.mmdb \
-  --filter.include.destination PUBLIC \
-  --filter.include.protocol TCP \
-  --filter.exclude.address 142.250.186.163,2a00:1450:4001:82b::2003
+  --filter.destination PRIVATE \
+  --filter.protocol UDP \
+  --filter.destination.addresses 142.250.186.163,2a00:1450:4001:82b::2003
   --sink.journal.enable \
   --service.log.format json \
   --service.log.level debug
