@@ -86,6 +86,8 @@ var runCmd = &cobra.Command{
 }
 
 func init() {
+	runCmd.CompletionOptions.SetDefaultShellCompDirective(cobra.ShellCompDirectiveNoFileComp)
+
 	runCmd.Flags().StringSliceVar(&srv.Filter.EventTypes, "filter.types", nil, "Filter by event type (NEW,UPDATE,DESTROY)")
 	runCmd.Flags().StringSliceVar(&srv.Filter.Protocols, "filter.protocols", nil, "Filter by protocol (TCP,UDP)")
 	runCmd.Flags().StringSliceVar(&srv.Filter.Networks.Destinations, "filter.destination.networks", nil, "Filter by destination networks (PUBLIC,PRIVATE,LOCAL,MULTICAST)")
@@ -109,28 +111,14 @@ func init() {
 	runCmd.Flags().BoolVar(&srv.Sink.Stream.Enable, "sink.stream.enable", false, "Enable stream sink")
 	runCmd.Flags().StringVar(&srv.Sink.Stream.Writer, "sink.stream.writer", "stdout", "Stream writer (stdout,stderr,discard)")
 
+	_ = runCmd.RegisterFlagCompletionFunc("geoip.database", cobra.FixedCompletions(nil, cobra.ShellCompDirectiveDefault))
+
 	_ = runCmd.RegisterFlagCompletionFunc("service.log.level", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return validLogLevels, cobra.ShellCompDirectiveNoFileComp
 	})
 
 	_ = runCmd.RegisterFlagCompletionFunc("service.log.format", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return validLogFormats, cobra.ShellCompDirectiveNoFileComp
-	})
-
-	_ = runCmd.RegisterFlagCompletionFunc("filter.types", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return validEventTypes, cobra.ShellCompDirectiveNoFileComp
-	})
-
-	_ = runCmd.RegisterFlagCompletionFunc("filter.protocols", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return validProtocols, cobra.ShellCompDirectiveNoFileComp
-	})
-
-	_ = runCmd.RegisterFlagCompletionFunc("filter.destination.networks", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return validNetworks, cobra.ShellCompDirectiveNoFileComp
-	})
-
-	_ = runCmd.RegisterFlagCompletionFunc("filter.source.networks", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return validNetworks, cobra.ShellCompDirectiveNoFileComp
 	})
 
 	_ = runCmd.RegisterFlagCompletionFunc("sink.stream.writer", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
