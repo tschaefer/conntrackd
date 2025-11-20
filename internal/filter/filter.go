@@ -11,12 +11,17 @@ import (
 	"github.com/ti-mo/conntrack"
 )
 
+type FilterAddresses struct {
+	Destinations []string
+	Sources      []string
+}
+
 type Filter struct {
 	EventTypes   []string
 	Protocols    []string
 	Destinations []string
 	Sources      []string
-	Addresses    []string
+	Addresses    FilterAddresses
 }
 
 func (f *Filter) eventType(event conntrack.Event) bool {
@@ -129,12 +134,20 @@ func (f *Filter) eventDestination(event conntrack.Event) bool {
 	return false
 }
 
-func (f *Filter) eventAddress(event conntrack.Event) bool {
-	if len(f.Addresses) == 0 {
+func (f *Filter) eventAddressDestination(event conntrack.Event) bool {
+	if len(f.Addresses.Destinations) == 0 {
 		return true
 	}
 
-	return !slices.Contains(f.Addresses, event.Flow.TupleOrig.IP.DestinationAddress.String())
+	return !slices.Contains(f.Addresses.Destinations, event.Flow.TupleOrig.IP.DestinationAddress.String())
+}
+
+func (f *Filter) eventAddressSource(event conntrack.Event) bool {
+	if len(f.Addresses.Sources) == 0 {
+		return true
+	}
+
+	return !slices.Contains(f.Addresses.Sources, event.Flow.TupleOrig.IP.SourceAddress.String())
 }
 
 func (f *Filter) Apply(event conntrack.Event) bool {
@@ -154,7 +167,11 @@ func (f *Filter) Apply(event conntrack.Event) bool {
 		return false
 	}
 
-	if !f.eventAddress(event) {
+	if !f.eventAddressDestination(event) {
+		return false
+	}
+
+	if !f.eventAddressSource(event) {
 		return false
 	}
 

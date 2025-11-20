@@ -61,7 +61,10 @@ var runCmd = &cobra.Command{
 		err = validateStringSliceFlag("filter.include.sources", srv.Filter.Destinations, validNetworks)
 		cobra.CheckErr(err)
 
-		err = validateStringSliceFlag("filter.exclude.addresses", srv.Filter.Addresses, []string{})
+		err = validateStringSliceFlag("filter.exclude.destination.addresses", srv.Filter.Addresses.Destinations, []string{})
+		cobra.CheckErr(err)
+
+		err = validateStringSliceFlag("filter.exclude.source.addresses", srv.Filter.Addresses.Sources, []string{})
 		cobra.CheckErr(err)
 
 		err = validateStringFlag("service.log.level", srv.Logger.Level, validLogLevels)
@@ -87,7 +90,8 @@ func init() {
 	runCmd.Flags().StringSliceVar(&srv.Filter.Protocols, "filter.include.protocols", nil, "Filter by protocol (TCP,UDP)")
 	runCmd.Flags().StringSliceVar(&srv.Filter.Destinations, "filter.include.destinations", nil, "Filter by destination networks (PUBLIC,PRIVATE,LOCAL,MULTICAST)")
 	runCmd.Flags().StringSliceVar(&srv.Filter.Sources, "filter.include.sources", nil, "Filter by sources networks (PUBLIC,PRIVATE,LOCAL,MULTICAST)")
-	runCmd.Flags().StringSliceVar(&srv.Filter.Addresses, "filter.exclude.addresses", nil, "Exclude specific IP addresses")
+	runCmd.Flags().StringSliceVar(&srv.Filter.Addresses.Destinations, "filter.exclude.destination.addresses", nil, "Exclude specific destination IP addresses")
+	runCmd.Flags().StringSliceVar(&srv.Filter.Addresses.Sources, "filter.exclude.source.addresses", nil, "Exclude specific source IP addresses")
 	runCmd.Flags().StringVar(&srv.Logger.Format, "service.log.format", "", "Log format (text,json)")
 	runCmd.Flags().StringVar(&srv.Logger.Level, "service.log.level", "", "Log level (debug,info)")
 	runCmd.Flags().StringVar(&srv.GeoIP.Database, "geoip.database", "", "Path to GeoIP database")
@@ -131,7 +135,7 @@ func init() {
 }
 
 func validateStringSliceFlag(flag string, values []string, validValues []string) error {
-	if flag == "filter.exclude.addresses" {
+	if flag == "filter.exclude.source.addresses" || flag == "filter.exclude.destination.addresses" {
 		for _, v := range values {
 			if _, err := netip.ParseAddr(v); err != nil {
 				return fmt.Errorf("invalid IP address '%s' for '--%s'", v, flag)

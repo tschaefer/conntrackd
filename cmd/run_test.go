@@ -9,7 +9,7 @@ import (
 func TestValidateStringSliceFlag_Valid(t *testing.T) {
 	assert.NoError(t, validateStringSliceFlag("filter.include.types", []string{"NEW", "UPDATE"}, validEventTypes))
 	assert.NoError(t, validateStringSliceFlag("filter.include.protocols", []string{"TCP"}, validProtocols))
-	assert.NoError(t, validateStringSliceFlag("filter.exclude.addresses", []string{"127.0.0.1", "::1"}, []string{}))
+	assert.NoError(t, validateStringSliceFlag("filter.exclude.destination.addresses", []string{"127.0.0.1", "::1"}, []string{}))
 }
 
 func TestValidateStringSliceFlag_Invalid(t *testing.T) {
