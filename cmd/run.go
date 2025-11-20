@@ -21,7 +21,7 @@ var srv = service.Service{}
 var (
 	validEventTypes    = []string{"NEW", "UPDATE", "DESTROY"}
 	validProtocols     = []string{"TCP", "UDP"}
-	validDestinations  = []string{"PUBLIC", "PRIVATE", "LOCAL", "MULTICAST"}
+	validNetworks      = []string{"PUBLIC", "PRIVATE", "LOCAL", "MULTICAST"}
 	validLogLevels     = []string{"trace", "debug", "info", "error"}
 	validLogFormats    = []string{"text", "json"}
 	validSyslogSchemes = []string{"udp", "tcp", "unix", "unixgram", "unixpacket"}
@@ -55,7 +55,10 @@ var runCmd = &cobra.Command{
 		err = validateStringSliceFlag("filter.include.protocols", srv.Filter.Protocols, validProtocols)
 		cobra.CheckErr(err)
 
-		err = validateStringSliceFlag("filter.include.destinations", srv.Filter.Destinations, validDestinations)
+		err = validateStringSliceFlag("filter.include.destinations", srv.Filter.Destinations, validNetworks)
+		cobra.CheckErr(err)
+
+		err = validateStringSliceFlag("filter.include.sources", srv.Filter.Destinations, validNetworks)
 		cobra.CheckErr(err)
 
 		err = validateStringSliceFlag("filter.exclude.addresses", srv.Filter.Addresses, []string{})
@@ -82,7 +85,8 @@ var runCmd = &cobra.Command{
 func init() {
 	runCmd.Flags().StringSliceVar(&srv.Filter.EventTypes, "filter.include.types", nil, "Filter by event type (NEW,UPDATE,DESTROY)")
 	runCmd.Flags().StringSliceVar(&srv.Filter.Protocols, "filter.include.protocols", nil, "Filter by protocol (TCP,UDP)")
-	runCmd.Flags().StringSliceVar(&srv.Filter.Destinations, "filter.include.destinations", nil, "Filter by destination IPs (PUBLIC,PRIVATE,LOCAL,MULTICAST)")
+	runCmd.Flags().StringSliceVar(&srv.Filter.Destinations, "filter.include.destinations", nil, "Filter by destination networks (PUBLIC,PRIVATE,LOCAL,MULTICAST)")
+	runCmd.Flags().StringSliceVar(&srv.Filter.Sources, "filter.include.sources", nil, "Filter by sources networks (PUBLIC,PRIVATE,LOCAL,MULTICAST)")
 	runCmd.Flags().StringSliceVar(&srv.Filter.Addresses, "filter.exclude.addresses", nil, "Exclude specific IP addresses")
 	runCmd.Flags().StringVar(&srv.Logger.Format, "service.log.format", "", "Log format (text,json)")
 	runCmd.Flags().StringVar(&srv.Logger.Level, "service.log.level", "", "Log level (debug,info)")
@@ -114,7 +118,11 @@ func init() {
 	})
 
 	_ = runCmd.RegisterFlagCompletionFunc("filter.include.destinations", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return validDestinations, cobra.ShellCompDirectiveNoFileComp
+		return validNetworks, cobra.ShellCompDirectiveNoFileComp
+	})
+
+	_ = runCmd.RegisterFlagCompletionFunc("filter.include.sources", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return validNetworks, cobra.ShellCompDirectiveNoFileComp
 	})
 
 	_ = runCmd.RegisterFlagCompletionFunc("sink.stream.writer", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {

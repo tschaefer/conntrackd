@@ -62,5 +62,5 @@ func TestValidSlicesAreExplicit(t *testing.T) {
 	assert.Equal(t, expectedProtocols, validProtocols, "validProtocols mismatch")
 
 	expectedDest := []string{"PUBLIC", "PRIVATE", "LOCAL", "MULTICAST"}
-	assert.Equal(t, expectedDest, validDestinations, "validDestinations mismatch")
+	assert.Equal(t, expectedDest, validNetworks, "validNetworks mismatch")
 }

@@ -15,6 +15,7 @@ type Filter struct {
 	EventTypes   []string
 	Protocols    []string
 	Destinations []string
+	Sources      []string
 	Addresses    []string
 }
 
@@ -56,6 +57,41 @@ func (f *Filter) eventProtocol(event conntrack.Event) bool {
 	}
 
 	return slices.Contains(f.Protocols, protocolStr)
+}
+
+func (f *Filter) eventSource(event conntrack.Event) bool {
+	if len(f.Sources) == 0 {
+		return true
+	}
+
+	dest := event.Flow.TupleOrig.IP.SourceAddress
+	isLocal := dest.IsLoopback()
+	isPrivate := dest.IsPrivate()
+	isMulticast := dest.IsMulticast()
+	isPublic := !isLocal && !isPrivate && !isMulticast
+
+	for _, filterSource := range f.Sources {
+		switch filterSource {
+		case "LOCAL":
+			if isLocal {
+				return true
+			}
+		case "PRIVATE":
+			if isPrivate {
+				return true
+			}
+		case "MULTICAST":
+			if isMulticast {
+				return true
+			}
+		case "PUBLIC":
+			if isPublic {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 func (f *Filter) eventDestination(event conntrack.Event) bool {
@@ -107,6 +143,10 @@ func (f *Filter) Apply(event conntrack.Event) bool {
 	}
 
 	if !f.eventProtocol(event) {
+		return false
+	}
+
+	if !f.eventSource(event) {
 		return false
 	}
 
