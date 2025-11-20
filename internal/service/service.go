@@ -66,10 +66,11 @@ func (s *Service) handler(geo *geoip.Reader, sink *slog.Logger) error {
 				if !ok {
 					return nil
 				}
-				if !s.Filter.Apply(event) {
-					continue
-				}
-				record.Record(event, geo, sink)
+				go func() {
+					if !s.Filter.Apply(event) {
+						record.Record(event, geo, sink)
+					}
+				}()
 			}
 		}
 	})
@@ -109,22 +110,10 @@ func (s *Service) Run() error {
 
 	slog.Debug("Running Service.", "data", s)
 
-	include_filters := slog.Group("include",
-		"events", s.Filter.EventTypes,
-		"protocols", s.Filter.Protocols,
-		"destinations", s.Filter.Destinations,
-	)
-	exclude_filters := slog.Group("exclude",
-		"addresses", s.Filter.Addresses,
-	)
-	filters := slog.Group("filters",
-		include_filters,
-		exclude_filters,
-	)
 	slog.Info("Starting conntrack listener.",
 		"release", version.Release(), "commit", version.Commit(),
+		"filter", s.Filter,
 		"geoip", s.GeoIP.Database,
-		filters,
 	)
 
 	sink, err := s.Sink.Initialize()

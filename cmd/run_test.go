@@ -7,14 +7,14 @@ import (
 )
 
 func TestValidateStringSliceFlag_Valid(t *testing.T) {
-	assert.NoError(t, validateStringSliceFlag("filter.include.types", []string{"NEW", "UPDATE"}, validEventTypes))
-	assert.NoError(t, validateStringSliceFlag("filter.include.protocols", []string{"TCP"}, validProtocols))
-	assert.NoError(t, validateStringSliceFlag("filter.exclude.addresses", []string{"127.0.0.1", "::1"}, []string{}))
+	assert.NoError(t, validateStringSliceFlag("filter.types", []string{"NEW", "UPDATE"}, validEventTypes))
+	assert.NoError(t, validateStringSliceFlag("filter.protocols", []string{"TCP"}, validProtocols))
+	assert.NoError(t, validateStringSliceFlag("filter.destination.addresses", []string{"127.0.0.1", "::1"}, []string{}))
 }
 
 func TestValidateStringSliceFlag_Invalid(t *testing.T) {
-	assert.Error(t, validateStringSliceFlag("filter.include.types", []string{"BAD"}, validEventTypes))
-	assert.Error(t, validateStringSliceFlag("filter.exclude.addresses", []string{"not-an-ip"}, []string{}))
+	assert.Error(t, validateStringSliceFlag("filter.types", []string{"BAD"}, validEventTypes))
+	assert.Error(t, validateStringSliceFlag("filter.addresses", []string{"not-an-ip"}, []string{}))
 }
 
 func TestValidateStringFlag_LogLevelsAndFormats(t *testing.T) {
@@ -62,5 +62,5 @@ func TestValidSlicesAreExplicit(t *testing.T) {
 	assert.Equal(t, expectedProtocols, validProtocols, "validProtocols mismatch")
 
 	expectedDest := []string{"PUBLIC", "PRIVATE", "LOCAL", "MULTICAST"}
-	assert.Equal(t, expectedDest, validDestinations, "validDestinations mismatch")
+	assert.Equal(t, expectedDest, validNetworks, "validNetworks mismatch")
 }

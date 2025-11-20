@@ -17,7 +17,7 @@ log pipelines.
 
 - Listen for conntrack events (new/updated/destroyed connections)
 - Enrich IP addresses with GEO location data
-- Fanout to multiple log sinks (syslog,
+- Fanout to multiple log sinks (stream, syslog,
   [journald](https://www.freedesktop.org/software/systemd/man/latest/systemd-journald.html),
   [Loki](https://grafana.com/docs/loki/latest/))
 
@@ -41,32 +41,38 @@ sudo conntrackd run --sink.journal.enable
 ```
 For further configuration, see the command-line options below.
 
-| Flag                            | Description                   | Options                               |
-|---------------------------------|-------------------------------|---------------------------------------|
-| `--filter.include.destinations` | Filter by destination IPs     | PUBLIC,PRIVATE,LOCAL,MULTICAST        |
-| `--filter.include.protocols`    | Filter by protocols           | TCP,UDP                               |
-| `--filter.include.types`        | Filter by event types         | NEW,UPDATE,DESTROY                    |
-| `--filter.exclude.addresses`    | Exclude specific IP addresses |                                       |
-| `--geoip.database`              | Path to GeoIP database        |                                       |
-| `--service.log.format`          | Log format                    | json,text; default: text              |
-| `--service.log.level`           | Log level                     | trace,debug,info,error; default: info |
-| `--sink.journal.enable`         | Enable journald sink          |                                       |
-| `--sink.syslog.enable`          | Enable syslog sink            |                                       |
-| `--sink.enable.loki`            | Enable Loki sink              |                                       |
-| `--sink.syslog.address`         | Syslog address                | default: udp://localhost:514          |
-| `--sink.loki.address`           | Loki address                  | default: http://localhost:3100        |
-| `--sink.loki.labels`            | Loki labels                   | comma seperated key=value pairs       |
+| Flag                           | Description                        | Options                                |
+|--------------------------------|------------------------------------|----------------------------------------|
+| `filter.destinations`          | Filter by destination networks     | PUBLIC,PRIVATE,LOCAL,MULTICAST         |
+| `filter.sourcess`              | Filter by source networks          | PUBLIC,PRIVATE,LOCAL,MULTICAST         |
+| `filter.protocols`             | Filter by protocols                | TCP,UDP                                |
+| `filter.types`                 | Filter by event types              | NEW,UPDATE,DESTROY                     |
+| `filter.destination.addresses` | Filter by destination IP addresses |                                        |
+| `filter.source.addresses`      | Filter by source IP addresses      |                                        |
+| `filter.destination.ports`     | Filter by destination ports        |                                        |
+| `filter.source.ports`          | Filter by source ports             |                                        |
+| `geoip.database`               | Path to GeoIP database             |                                        |
+| `service.log.format`           | Log format                         | json,text; default: text               |
+| `service.log.level`            | Log level                          | trace,debug,info,error; default: info  |
+| `sink.journal.enable`          | Enable journald sink               |                                        |
+| `sink.syslog.enable`           | Enable syslog sink                 |                                        |
+| `sink.enable.loki`             | Enable Loki sink                   |                                        |
+| `sink.stream.enable`           | Enable stream sink                 |                                        |
+| `sink.syslog.address`          | Syslog address                     | default: udp://localhost:514           |
+| `sink.loki.address`            | Loki address                       | default: http://localhost:3100         |
+| `sink.loki.labels`             | Loki labels                        | comma seperated key=value pairs        |
+| `sink.stream.writer`           | Stream writer type                 | stdout,stderr,discard; default: stdout |
 
-If an including filter is not specified, all related events are logged.
+All filters are exclusive; if any filter is not set, all related events are processed.
 
 Example run:
 
 ```bash
 sudo conntrackd run \
   --geoip.database /usr/local/share/GeoLite2-City.mmdb \
-  --filter.include.destination PUBLIC \
-  --filter.include.protocol TCP \
-  --filter.exclude.address 142.250.186.163,2a00:1450:4001:82b::2003
+  --filter.destination PRIVATE \
+  --filter.protocol UDP \
+  --filter.destination.addresses 142.250.186.163,2a00:1450:4001:82b::2003
   --sink.journal.enable \
   --service.log.format json \
   --service.log.level debug
@@ -111,7 +117,7 @@ Example log entry recorded by sink `syslog`:
   "level": "INFO",
   "logger.name": "samber/slog-syslog",
   "logger.version": "v2.5.2",
-  "message": "UPDATE TCP connection from 2003:cf:1716:7b64:da80:83ff:fecd:da51/41348 to 2600:1901:0:b3ea::/443",
+  "message": "UPDATE TCP connection from 2003:cf:1716:7b64:da80:83ff:fecd:da51/41348...",
   "timestamp": "2025-11-15T09:55:25.647544937Z"
 }
 ```
@@ -120,7 +126,7 @@ Example log entry recorded by sink `journal`:
 
 ```json
 {
-	"__CURSOR" : "s=b3c7821dbfce47a59b06797aea9028ca;i=6772d3;b=100da27bd8b94096b5c80cdac34d6063;m=52264313e1;t=6439f08d9b9ef;x=e6041f63402b66b2",
+	"__CURSOR" : "s=b3c7821dbfce47a59b06797aea9028ca;i=6772d3;b=100da27bd8...",
 	"_CAP_EFFECTIVE" : "1ffffffffff",
 	"EVENT_SPORT" : "39790",
 	"_SOURCE_REALTIME_TIMESTAMP" : "1763200187611509",
@@ -148,7 +154,7 @@ Example log entry recorded by sink `journal`:
 	"_SYSTEMD_INVOCATION_ID" : "021760b3373342b98aaeabf9d12d8d74",
 	"EVENT_FLOW" : "3478798157",
 	"_PID" : "3794900",
-	"_CMDLINE" : "conntrackd run --service.log.level debug --service.log.format json --geoip.database GeoLite2-City.mmdb --filter.include.protocol TCP --filter.include.destination PUBLIC --sink.journal.enable",
+	"_CMDLINE" : "conntrackd run --service.log.level debug --service.log.format ...",
 	"EVENT_PROT" : "TCP",
 	"_AUDIT_SESSION" : "1",
 	"_BOOT_ID" : "100da27bd8b94096b5c80cdac34d6063",
@@ -158,7 +164,7 @@ Example log entry recorded by sink `journal`:
 	"_AUDIT_LOGINUID" : "1000",
 	"_UID" : "0",
 	"EVENT_TYPE" : "UPDATE",
-	"MESSAGE" : "UPDATE TCP connection from 2003:cf:1716:7b64:da80:83ff:fecd:da51/39790 to 2600:1901:0:b3ea::/443"
+	"MESSAGE" : "UPDATE TCP connection from 2003:cf:1716:7b64:da80:83ff:fecd:da51/39790..."
 }
 
 ```
@@ -188,7 +194,7 @@ Example log entry recorded by sink `loki`:
   "values": [
     [
       "1763537351540294198",
-      "UPDATE TCP connection from 2003:cf:1716:7b64:d6e9:8aff:fe4f:7a59/44950 to 2a01:4f8:1c1c:b751::1/443"
+      "UPDATE TCP connection from 2003:cf:1716:7b64:d6e9:8aff:fe4f:7a59/44950..."
     ]
   ]
 }

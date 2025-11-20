@@ -16,3 +16,7 @@ var versionCmd = &cobra.Command{
 		version.Print()
 	},
 }
+
+func init() {
+	runCmd.CompletionOptions.SetDefaultShellCompDirective(cobra.ShellCompDirectiveNoFileComp)
+}

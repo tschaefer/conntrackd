@@ -66,7 +66,7 @@ func Test_Filter(t *testing.T) {
 
 	f := &Filter{}
 	matched := f.Apply(event)
-	assert.True(t, matched, "no filters")
+	assert.False(t, matched, "no filters")
 
 	f = &Filter{
 		Protocols: []string{"TCP"},
@@ -117,26 +117,130 @@ func Test_Filter(t *testing.T) {
 	assert.False(t, matched, "bad protocol filter")
 
 	f = &Filter{
-		Destinations: []string{"PUBLIC"},
+		Networks: FilterNetworks{
+			Destinations: []string{"PUBLIC"},
+		},
 	}
 	matched = f.Apply(event)
-	assert.True(t, matched, "destination filter PUBLIC")
+	assert.True(t, matched, "destination network filter PUBLIC")
 
 	f = &Filter{
-		Destinations: []string{"PRIVATE"},
+		Networks: FilterNetworks{
+			Destinations: []string{"PRIVATE"},
+		},
 	}
 	matched = f.Apply(event)
-	assert.False(t, matched, "destination filter PRIVATE")
+	assert.False(t, matched, "destination network filter PRIVATE")
 
 	f = &Filter{
-		Destinations: []string{"LOCAL"},
+		Networks: FilterNetworks{
+			Destinations: []string{"LOCAL"},
+		},
 	}
 	matched = f.Apply(event)
-	assert.False(t, matched, "destination filter LOCAL")
+	assert.False(t, matched, "destination network filter LOCAL")
 
 	f = &Filter{
-		Destinations: []string{"MULTICAST"},
+		Networks: FilterNetworks{
+			Destinations: []string{"MULTICAST"},
+		},
 	}
 	matched = f.Apply(event)
-	assert.False(t, matched, "destination filter MULTICAST")
+	assert.False(t, matched, "source network filter MULTICAST")
+
+	f = &Filter{
+		Networks: FilterNetworks{
+			Sources: []string{"PUBLIC"},
+		},
+	}
+	matched = f.Apply(event)
+	assert.False(t, matched, "source network filter PUBLIC")
+
+	f = &Filter{
+		Networks: FilterNetworks{
+			Sources: []string{"PRIVATE"},
+		},
+	}
+	matched = f.Apply(event)
+	assert.True(t, matched, "source network filter PRIVATE")
+
+	f = &Filter{
+		Networks: FilterNetworks{
+			Sources: []string{"LOCAL"},
+		},
+	}
+	matched = f.Apply(event)
+	assert.False(t, matched, "source network filter LOCAL")
+
+	f = &Filter{
+		Networks: FilterNetworks{
+			Sources: []string{"MULTICAST"},
+		},
+	}
+	matched = f.Apply(event)
+	assert.False(t, matched, "source network filter MULTICAST")
+
+	f = &Filter{
+		Addresses: FilterAddresses{
+			Destinations: []string{"78.47.60.169"},
+		},
+	}
+	matched = f.Apply(event)
+	assert.True(t, matched, "destination address filter match")
+
+	f = &Filter{
+		Addresses: FilterAddresses{
+			Destinations: []string{"78.47.60.170"},
+		},
+	}
+	matched = f.Apply(event)
+	assert.False(t, matched, "destination address filter no match")
+
+	f = &Filter{
+		Addresses: FilterAddresses{
+			Sources: []string{"10.19.80.100"},
+		},
+	}
+	matched = f.Apply(event)
+	assert.True(t, matched, "source address filter match")
+
+	f = &Filter{
+		Addresses: FilterAddresses{
+			Sources: []string{"10.19.80.200"},
+		},
+	}
+	matched = f.Apply(event)
+	assert.False(t, matched, "source address filter no match")
+
+	f = &Filter{
+		Ports: FilterPorts{
+			Destinations: []uint{443},
+		},
+	}
+	matched = f.Apply(event)
+	assert.True(t, matched, "destination port filter match")
+
+	f = &Filter{
+		Ports: FilterPorts{
+			Destinations: []uint{80},
+		},
+	}
+	matched = f.Apply(event)
+	assert.False(t, matched, "destination port filter no match")
+
+	f = &Filter{
+		Ports: FilterPorts{
+			Sources: []uint{4711},
+		},
+	}
+	matched = f.Apply(event)
+	assert.True(t, matched, "source port filter match")
+
+	f = &Filter{
+		Ports: FilterPorts{
+			Sources: []uint{1234},
+		},
+	}
+	matched = f.Apply(event)
+	assert.False(t, matched, "source port filter no match")
 }

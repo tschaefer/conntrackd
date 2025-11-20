@@ -21,11 +21,12 @@ var srv = service.Service{}
 var (
 	validEventTypes    = []string{"NEW", "UPDATE", "DESTROY"}
 	validProtocols     = []string{"TCP", "UDP"}
-	validDestinations  = []string{"PUBLIC", "PRIVATE", "LOCAL", "MULTICAST"}
+	validNetworks      = []string{"PUBLIC", "PRIVATE", "LOCAL", "MULTICAST"}
 	validLogLevels     = []string{"trace", "debug", "info", "error"}
 	validLogFormats    = []string{"text", "json"}
 	validSyslogSchemes = []string{"udp", "tcp", "unix", "unixgram", "unixpacket"}
 	validLokiSchemes   = []string{"http", "https"}
+	validStreamWriters = []string{"stdout", "stderr", "discard"}
 )
 
 var runCmd = &cobra.Command{
@@ -34,7 +35,8 @@ var runCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		if !srv.Sink.Journal.Enable &&
 			!srv.Sink.Syslog.Enable &&
-			!srv.Sink.Loki.Enable {
+			!srv.Sink.Loki.Enable &&
+			!srv.Sink.Stream.Enable {
 			cobra.CheckErr(fmt.Errorf("at least one sink must be enabled"))
 		}
 
@@ -44,16 +46,25 @@ var runCmd = &cobra.Command{
 		err = validateStringFlag("sink.loki.address", srv.Sink.Loki.Address, []string{})
 		cobra.CheckErr(err)
 
-		err = validateStringSliceFlag("filter.include.types", srv.Filter.EventTypes, validEventTypes)
+		err = validateStringFlag("sink.stream.writer", srv.Sink.Stream.Writer, validStreamWriters)
 		cobra.CheckErr(err)
 
-		err = validateStringSliceFlag("filter.include.protocols", srv.Filter.Protocols, validProtocols)
+		err = validateStringSliceFlag("filter.types", srv.Filter.EventTypes, validEventTypes)
 		cobra.CheckErr(err)
 
-		err = validateStringSliceFlag("filter.include.destinations", srv.Filter.Destinations, validDestinations)
+		err = validateStringSliceFlag("filter.protocols", srv.Filter.Protocols, validProtocols)
 		cobra.CheckErr(err)
 
-		err = validateStringSliceFlag("filter.exclude.addresses", srv.Filter.Addresses, []string{})
+		err = validateStringSliceFlag("filter.destination.networks", srv.Filter.Networks.Destinations, validNetworks)
+		cobra.CheckErr(err)
+
+		err = validateStringSliceFlag("filter.source.networks", srv.Filter.Networks.Sources, validNetworks)
+		cobra.CheckErr(err)
+
+		err = validateStringSliceFlag("filter.destination.addresses", srv.Filter.Addresses.Destinations, []string{})
+		cobra.CheckErr(err)
+
+		err = validateStringSliceFlag("filter.source.addresses", srv.Filter.Addresses.Sources, []string{})
 		cobra.CheckErr(err)
 
 		err = validateStringFlag("service.log.level", srv.Logger.Level, validLogLevels)
@@ -75,12 +86,20 @@ var runCmd = &cobra.Command{
 }
 
 func init() {
-	runCmd.Flags().StringSliceVar(&srv.Filter.EventTypes, "filter.include.types", nil, "Filter by event type (NEW,UPDATE,DESTROY)")
-	runCmd.Flags().StringSliceVar(&srv.Filter.Protocols, "filter.include.protocols", nil, "Filter by protocol (TCP,UDP)")
-	runCmd.Flags().StringSliceVar(&srv.Filter.Destinations, "filter.include.destinations", nil, "Filter by destination IPs (PUBLIC,PRIVATE,LOCAL,MULTICAST)")
-	runCmd.Flags().StringSliceVar(&srv.Filter.Addresses, "filter.exclude.addresses", nil, "Exclude specific IP addresses")
+	runCmd.CompletionOptions.SetDefaultShellCompDirective(cobra.ShellCompDirectiveNoFileComp)
+
+	runCmd.Flags().StringSliceVar(&srv.Filter.EventTypes, "filter.types", nil, "Filter by event type (NEW,UPDATE,DESTROY)")
+	runCmd.Flags().StringSliceVar(&srv.Filter.Protocols, "filter.protocols", nil, "Filter by protocol (TCP,UDP)")
+	runCmd.Flags().StringSliceVar(&srv.Filter.Networks.Destinations, "filter.destination.networks", nil, "Filter by destination networks (PUBLIC,PRIVATE,LOCAL,MULTICAST)")
+	runCmd.Flags().StringSliceVar(&srv.Filter.Networks.Sources, "filter.source.networks", nil, "Filter by sources networks (PUBLIC,PRIVATE,LOCAL,MULTICAST)")
+	runCmd.Flags().StringSliceVar(&srv.Filter.Addresses.Destinations, "filter.destination.addresses", nil, "Filter by destination IP addresses")
+	runCmd.Flags().StringSliceVar(&srv.Filter.Addresses.Sources, "filter.source.addresses", nil, "Filter by source IP addresses")
+	runCmd.Flags().UintSliceVar(&srv.Filter.Ports.Destinations, "filter.destination.ports", nil, "Filter by destination ports")
+	runCmd.Flags().UintSliceVar(&srv.Filter.Ports.Sources, "filter.source.ports", nil, "Filter by source ports")
+
 	runCmd.Flags().StringVar(&srv.Logger.Format, "service.log.format", "", "Log format (text,json)")
 	runCmd.Flags().StringVar(&srv.Logger.Level, "service.log.level", "", "Log level (debug,info)")
+
 	runCmd.Flags().StringVar(&srv.GeoIP.Database, "geoip.database", "", "Path to GeoIP database")
 
 	runCmd.Flags().BoolVar(&srv.Sink.Journal.Enable, "sink.journal.enable", false, "Enable journald sink")
@@ -89,6 +108,10 @@ func init() {
 	runCmd.Flags().BoolVar(&srv.Sink.Loki.Enable, "sink.loki.enable", false, "Enable Loki sink")
 	runCmd.Flags().StringVar(&srv.Sink.Loki.Address, "sink.loki.address", "http://localhost:3100", "Loki address")
 	runCmd.Flags().StringSliceVar(&srv.Sink.Loki.Labels, "sink.loki.labels", nil, "Additional labels for Loki sink in key=value format")
+	runCmd.Flags().BoolVar(&srv.Sink.Stream.Enable, "sink.stream.enable", false, "Enable stream sink")
+	runCmd.Flags().StringVar(&srv.Sink.Stream.Writer, "sink.stream.writer", "stdout", "Stream writer (stdout,stderr,discard)")
+
+	_ = runCmd.RegisterFlagCompletionFunc("geoip.database", cobra.FixedCompletions(nil, cobra.ShellCompDirectiveDefault))
 
 	_ = runCmd.RegisterFlagCompletionFunc("service.log.level", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return validLogLevels, cobra.ShellCompDirectiveNoFileComp
@@ -98,21 +121,13 @@ func init() {
 		return validLogFormats, cobra.ShellCompDirectiveNoFileComp
 	})
 
-	_ = runCmd.RegisterFlagCompletionFunc("filter.include.types", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return validEventTypes, cobra.ShellCompDirectiveNoFileComp
-	})
-
-	_ = runCmd.RegisterFlagCompletionFunc("filter.include.protocols", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return validProtocols, cobra.ShellCompDirectiveNoFileComp
-	})
-
-	_ = runCmd.RegisterFlagCompletionFunc("filter.include.destinations", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return validDestinations, cobra.ShellCompDirectiveNoFileComp
+	_ = runCmd.RegisterFlagCompletionFunc("sink.stream.writer", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return validStreamWriters, cobra.ShellCompDirectiveNoFileComp
 	})
 }
 
 func validateStringSliceFlag(flag string, values []string, validValues []string) error {
-	if flag == "filter.exclude.addresses" {
+	if flag == "filter.source.addresses" || flag == "filter.destination.addresses" {
 		for _, v := range values {
 			if _, err := netip.ParseAddr(v); err != nil {
 				return fmt.Errorf("invalid IP address '%s' for '--%s'", v, flag)
