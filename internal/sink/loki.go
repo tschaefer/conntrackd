@@ -12,12 +12,18 @@ import (
 	"os"
 	"strings"
 
-	klog "github.com/go-kit/log"
+	kitlog "github.com/go-kit/log"
+	kitlevel "github.com/go-kit/log/level"
 	"github.com/grafana/loki-client-go/loki"
 	"github.com/grafana/loki-client-go/pkg/labelutil"
 	"github.com/prometheus/common/model"
 	slogloki "github.com/samber/slog-loki/v3"
 	"github.com/tschaefer/conntrackd/internal/logger"
+)
+
+const (
+	readyPath = "/ready"
+	pushPath  = "/loki/api/v1/push"
 )
 
 type Loki struct {
@@ -26,19 +32,47 @@ type Loki struct {
 	Labels  []string
 }
 
-const (
-	readyPath = "/ready"
-	pushPath  = "/loki/api/v1/push"
-)
+var LokiProtocols = []string{"http", "https"}
 
-func (l *Loki) isReady() error {
-	uri, err := url.Parse(l.Address)
+func (l *Loki) TargetLoki(options *slog.HandlerOptions) (slog.Handler, error) {
+	url, err := url.Parse(l.Address)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	uri.Path = uri.Path + readyPath
 
-	response, err := http.Get(uri.String())
+	if err := l.isReady(*url); err != nil {
+		return nil, err
+	}
+
+	url.Path = url.Path + pushPath
+	config, err := loki.NewDefaultConfig(url.String())
+	if err != nil {
+		return nil, err
+	}
+
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = "unknown"
+	}
+	config.ExternalLabels = l.setLabels(hostname)
+
+	klogger := l.createLogger()
+	client, err := loki.NewWithLogger(config, klogger)
+	if err != nil {
+		return nil, err
+	}
+
+	o := &slogloki.Option{
+		Client: client,
+		Level:  options.Level,
+	}
+	return o.NewLokiHandler(), nil
+}
+
+func (l *Loki) isReady(url url.URL) error {
+	url.Path = url.Path + readyPath
+
+	response, err := http.Get(url.String())
 	if err != nil {
 		return err
 	}
@@ -53,67 +87,38 @@ func (l *Loki) isReady() error {
 	return nil
 }
 
-func (l *Loki) TargetLoki(options *slog.HandlerOptions) (slog.Handler, error) {
-	slog.Debug("Initializing Grafana Loki sink.", "data", l)
-
-	if err := l.isReady(); err != nil {
-		return nil, err
-	}
-
-	uri, err := url.Parse(l.Address)
-	if err != nil {
-		return nil, err
-	}
-	uri.Path = uri.Path + pushPath
-
-	config, err := loki.NewDefaultConfig(uri.String())
-	if err != nil {
-		return nil, err
-	}
-	hostname, err := os.Hostname()
-	if err != nil {
-		hostname = "unknown"
-	}
-
-	config.ExternalLabels = labelutil.LabelSet{
+func (l *Loki) setLabels(hostname string) labelutil.LabelSet {
+	labels := labelutil.LabelSet{
 		LabelSet: model.LabelSet{
 			model.LabelName("service_name"): model.LabelValue("conntrackd"),
 			model.LabelName("host"):         model.LabelValue(hostname),
 		},
 	}
 
-	if len(l.Labels) > 0 {
-		for _, label := range l.Labels {
-			if !strings.Contains(label, "=") {
-				continue
-			}
-			parts := strings.SplitN(label, "=", 2)
-			key := parts[0]
-			value := parts[1]
-			config.ExternalLabels.LabelSet[model.LabelName(key)] = model.LabelValue(value)
+	if len(l.Labels) == 0 {
+		return labels
+	}
+
+	for _, label := range l.Labels {
+		if !strings.Contains(label, "=") {
+			continue
 		}
+		parts := strings.SplitN(label, "=", 2)
+		key := parts[0]
+		value := parts[1]
+		labels.LabelSet[model.LabelName(key)] = model.LabelValue(value)
 	}
 
-	sw := klog.NewSyncWriter(os.Stderr)
-	var klogger klog.Logger
-	switch logger.Format() {
-	case "json":
-		klogger = klog.NewJSONLogger(sw)
-	case "text":
-		fallthrough
-	default:
-		klogger = klog.NewLogfmtLogger(sw)
-	}
-	klogger = klog.With(klogger, "time", klog.DefaultTimestamp, "sink", "loki")
+	return labels
+}
 
-	client, err := loki.NewWithLogger(config, klogger)
-	if err != nil {
-		return nil, err
-	}
+func (l *Loki) createLogger() kitlog.Logger {
+	level := logger.Level().String()
+	klevel := kitlevel.ParseDefault(level, kitlevel.InfoValue())
 
-	o := &slogloki.Option{
-		Client: client,
-		Level:  options.Level,
-	}
-	return o.NewLokiHandler(), nil
+	klogger := kitlog.NewJSONLogger(kitlog.NewSyncWriter(os.Stderr))
+	klogger = kitlevel.NewFilter(klogger, kitlevel.Allow(klevel))
+	klogger = kitlog.With(klogger, "time", kitlog.DefaultTimestamp, "sink", "loki")
+
+	return klogger
 }

@@ -7,6 +7,7 @@ require (
 	github.com/grafana/loki-client-go v0.0.0-20251015150631-c42bbddc310a
 	github.com/mdlayher/netlink v1.8.0
 	github.com/oschwald/geoip2-golang/v2 v2.0.0
+	github.com/prometheus/common v0.67.2
 	github.com/samber/slog-loki/v3 v3.6.0
 	github.com/samber/slog-multi v1.6.0
 	github.com/samber/slog-syslog/v2 v2.5.2
@@ -47,7 +48,6 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.20.4 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
-	github.com/prometheus/common v0.67.2 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/prometheus/prometheus v0.35.0 // indirect
 	github.com/samber/lo v1.52.0 // indirect

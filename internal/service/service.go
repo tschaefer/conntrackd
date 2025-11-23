@@ -7,7 +7,6 @@ package service
 import (
 	"context"
 	"log/slog"
-	"os/signal"
 	"syscall"
 
 	"github.com/mdlayher/netlink"
@@ -23,39 +22,75 @@ import (
 )
 
 type Service struct {
-	Filter filter.Filter
-	Logger logger.Logger
-	GeoIP  geoip.GeoIP
-	Sink   sink.Sink
+	Filter *filter.Filter
+	GeoIP  *geoip.GeoIP
+	Sink   *sink.Sink
+	Logger *slog.Logger
 }
 
-func (s *Service) handler(geo *geoip.Reader, sink *slog.Logger) error {
-	con, err := conntrack.Dial(nil)
-	if err != nil {
-		slog.Error("Failed to dial conntrack.", "error", err)
-		return err
-	}
+func NewService(logger *logger.Logger, geoip *geoip.GeoIP, filter *filter.Filter, sink *sink.Sink) (*Service, error) {
+	slog.SetDefault(logger.Logger)
 
-	evCh := make(chan conntrack.Event, 1024)
-	errCh, err := con.Listen(evCh, 4, netfilter.GroupsCT)
-	if err != nil {
-		_ = con.Close()
-		slog.Error("Failed to listen to conntrack events.", "error", err)
-		return err
-	}
+	return &Service{
+		Filter: filter,
+		GeoIP:  geoip,
+		Sink:   sink,
+		Logger: logger.Logger,
+	}, nil
+}
 
-	if err := con.SetOption(netlink.ListenAllNSID|netlink.NoENOBUFS, true); err != nil {
-		_ = con.Close()
-		slog.Error("Failed to set conntrack listen options.", "error", err)
-		return err
+func (s *Service) Run(ctx context.Context) bool {
+	slog.Info("Starting conntrack listener.",
+		"release", version.Release(), "commit", version.Commit(),
+	)
+
+	con, err := s.setupConntrack()
+	if err != nil {
+		return false
 	}
 	defer func() {
 		_ = con.Close()
 	}()
 
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
+	evCh, errCh, err := s.startEventListener(con)
+	if err != nil {
+		_ = con.Close()
+		return false
+	}
 
+	g := s.startEventProcessor(ctx, evCh)
+
+	return s.handleShutdown(ctx, con, g, errCh)
+}
+
+func (s *Service) setupConntrack() (*conntrack.Conn, error) {
+	con, err := conntrack.Dial(nil)
+	if err != nil {
+		slog.Error("Failed to dial conntrack.", "error", err)
+		return nil, err
+	}
+
+	if err := con.SetOption(netlink.ListenAllNSID|netlink.NoENOBUFS, true); err != nil {
+		_ = con.Close()
+		slog.Error("Failed to set conntrack listen options.", "error", err)
+		return nil, err
+	}
+
+	return con, nil
+}
+
+func (s *Service) startEventListener(con *conntrack.Conn) (chan conntrack.Event, chan error, error) {
+	evCh := make(chan conntrack.Event, 1024)
+	errCh, err := con.Listen(evCh, 4, netfilter.GroupsCT)
+	if err != nil {
+		slog.Error("Failed to listen to conntrack events.", "error", err)
+		return nil, nil, err
+	}
+
+	return evCh, errCh, nil
+}
+
+func (s *Service) startEventProcessor(ctx context.Context, evCh chan conntrack.Event) *errgroup.Group {
 	var g errgroup.Group
 	g.Go(func() error {
 		for {
@@ -66,73 +101,53 @@ func (s *Service) handler(geo *geoip.Reader, sink *slog.Logger) error {
 				if !ok {
 					return nil
 				}
-				go func() {
-					if !s.Filter.Apply(event) {
-						record.Record(event, geo, sink)
-					}
-				}()
+				go s.processEvent(event)
 			}
 		}
 	})
+	return &g
+}
 
+func (s *Service) processEvent(event conntrack.Event) {
+	// Only process TCP and UDP events, ignore all other protocols (ICMP, etc.)
+	protocol := event.Flow.TupleOrig.Proto.Protocol
+	if protocol != syscall.IPPROTO_TCP && protocol != syscall.IPPROTO_UDP {
+		return
+	}
+
+	shouldRecord := true
+	if s.Filter != nil {
+		_, shouldLog, _ := s.Filter.Evaluate(event)
+		shouldRecord = shouldLog
+	}
+
+	if shouldRecord {
+		record.Record(event, s.GeoIP, s.Sink.Logger)
+	}
+}
+
+func (s *Service) handleShutdown(ctx context.Context, con *conntrack.Conn, g *errgroup.Group, errCh chan error) bool {
 	select {
 	case err := <-errCh:
 		if err != nil {
 			slog.Error("Conntrack listener error.", "error", err)
-			stop()
 			_ = con.Close()
 			if gErr := g.Wait(); gErr != nil {
 				slog.Error("Event loop returned error during shutdown.", "error", gErr)
 			}
-			return err
+			return false
 		}
-		stop()
 		_ = con.Close()
 		if gErr := g.Wait(); gErr != nil {
 			slog.Error("Event loop returned error during shutdown.", "error", gErr)
 		}
-		return nil
+		return true
 	case <-ctx.Done():
 		slog.Info("Shutting down conntrack listener.")
 		_ = con.Close()
 		if gErr := g.Wait(); gErr != nil {
 			slog.Error("Event loop returned error during shutdown.", "error", gErr)
 		}
-		return nil
+		return true
 	}
-}
-
-func (s *Service) Run() error {
-	if err := s.Logger.Initialize(); err != nil {
-		slog.Error("Failed to initialize logger.", "error", err)
-		return err
-	}
-
-	slog.Debug("Running Service.", "data", s)
-
-	slog.Info("Starting conntrack listener.",
-		"release", version.Release(), "commit", version.Commit(),
-		"filter", s.Filter,
-		"geoip", s.GeoIP.Database,
-	)
-
-	sink, err := s.Sink.Initialize()
-	if err != nil {
-		slog.Error("Failed to initialize sink.", "error", err)
-		return err
-	}
-
-	var geo *geoip.Reader
-	if s.GeoIP.Database != "" {
-		geo, err = geoip.Open(s.GeoIP.Database)
-		if err != nil {
-			slog.Error("Failed to open geoip database.", "error", err)
-			return err
-		}
-		defer func() {
-			_ = geo.Close()
-		}()
-	}
-
-	return s.handler(geo, sink)
 }

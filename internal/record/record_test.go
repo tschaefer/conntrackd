@@ -23,7 +23,7 @@ import (
 )
 
 const geoDatabasePath = "/tmp/GeoLite2-City.mmdb"
-const geoDatabaseUrl = "https://github.com/P3TERX/GeoLite.mmdb/releases/latest/download/GeoLite2-City.mmdb"
+const geoDatabaseUrl = "https://git.io/GeoLite2-City.mmdb"
 
 var log bytes.Buffer
 
@@ -65,9 +65,8 @@ func setupGeoDatabase() {
 	}
 }
 
-func Test_Record(t *testing.T) {
+func recordLogsBasicData(t *testing.T) {
 	logger := setupLogger()
-	setupGeoDatabase()
 
 	flow := conntrack.NewFlow(
 		syscall.IPPROTO_TCP,
@@ -82,7 +81,7 @@ func Test_Record(t *testing.T) {
 		Flow: &flow,
 	}
 
-	var geo *geoip.Reader
+	var geo *geoip.GeoIP
 	Record(event, geo, logger)
 	var result map[string]any
 	err := json.Unmarshal(log.Bytes(), &result)
@@ -91,21 +90,56 @@ func Test_Record(t *testing.T) {
 	wanted := []string{"level", "time",
 		"type", "flow", "prot", "src", "dst", "sport", "dport"}
 	got := slices.Sorted(maps.Keys(result))
-	assert.ElementsMatch(t, wanted, got, "record keys without geoip")
+	assert.ElementsMatch(t, wanted, got, "record basic keys")
 
-	geo, err = geoip.Open(geoDatabasePath)
+	log.Reset()
+}
+
+func recordLogsWithGeoIPData(t *testing.T) {
+	logger := setupLogger()
+
+	flow := conntrack.NewFlow(
+		syscall.IPPROTO_TCP,
+		conntrack.StatusAssured,
+		netip.MustParseAddr("10.19.80.100"), netip.MustParseAddr("78.47.60.169"),
+		4711, 443,
+		60, 0,
+	)
+
+	event := conntrack.Event{
+		Type: conntrack.EventNew,
+		Flow: &flow,
+	}
+
+	geo, err := geoip.NewGeoIP(geoDatabasePath)
 	assert.NoError(t, err)
 	defer func() {
 		_ = geo.Close()
 	}()
 
-	log.Reset()
 	Record(event, geo, logger)
+	var result map[string]any
 	err = json.Unmarshal(log.Bytes(), &result)
 	assert.NoError(t, err)
 
-	wanted = append(wanted, []string{"city", "country", "lat", "lon"}...)
-	got = slices.Sorted(maps.Keys(result))
+	wanted := []string{"level", "time",
+		"type", "flow", "prot", "src", "dst", "sport", "dport",
+		"city", "country", "lat", "lon"}
+	got := slices.Sorted(maps.Keys(result))
 	assert.ElementsMatch(t, wanted, got, "record keys with geoip")
 
+	log.Reset()
+}
+
+func TestRecord(t *testing.T) {
+	setupGeoDatabase()
+
+	t.Run("Record logs basic data", recordLogsBasicData)
+	t.Run("Record logs with GeoIP data", recordLogsWithGeoIPData)
+
+	skip, ok := os.LookupEnv("KEEP_GEOIP_DB")
+	if ok && skip == "1" || skip == "true" {
+		return
+	}
+	_ = os.Remove(geoDatabasePath)
 }

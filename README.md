@@ -41,42 +41,73 @@ sudo conntrackd run --sink.journal.enable
 ```
 For further configuration, see the command-line options below.
 
-| Flag                           | Description                        | Options                                |
-|--------------------------------|------------------------------------|----------------------------------------|
-| `filter.destinations`          | Filter by destination networks     | PUBLIC,PRIVATE,LOCAL,MULTICAST         |
-| `filter.sourcess`              | Filter by source networks          | PUBLIC,PRIVATE,LOCAL,MULTICAST         |
-| `filter.protocols`             | Filter by protocols                | TCP,UDP                                |
-| `filter.types`                 | Filter by event types              | NEW,UPDATE,DESTROY                     |
-| `filter.destination.addresses` | Filter by destination IP addresses |                                        |
-| `filter.source.addresses`      | Filter by source IP addresses      |                                        |
-| `filter.destination.ports`     | Filter by destination ports        |                                        |
-| `filter.source.ports`          | Filter by source ports             |                                        |
-| `geoip.database`               | Path to GeoIP database             |                                        |
-| `service.log.format`           | Log format                         | json,text; default: text               |
-| `service.log.level`            | Log level                          | trace,debug,info,error; default: info  |
-| `sink.journal.enable`          | Enable journald sink               |                                        |
-| `sink.syslog.enable`           | Enable syslog sink                 |                                        |
-| `sink.enable.loki`             | Enable Loki sink                   |                                        |
-| `sink.stream.enable`           | Enable stream sink                 |                                        |
-| `sink.syslog.address`          | Syslog address                     | default: udp://localhost:514           |
-| `sink.loki.address`            | Loki address                       | default: http://localhost:3100         |
-| `sink.loki.labels`             | Loki labels                        | comma seperated key=value pairs        |
-| `sink.stream.writer`           | Stream writer type                 | stdout,stderr,discard; default: stdout |
+## Filtering
 
-All filters are exclusive; if any filter is not set, all related events are processed.
+conntrackd logs conntrack events to various sinks.
 
-Example run:
+**Protocol Support:** Only TCP and UDP events are processed. All other protocols
+(ICMP, IGMP, etc.) are automatically ignored and never logged, regardless of filter rules.
+
+You can use filters to control which TCP/UDP events are logged using a
+Domain-Specific Language (DSL).
+The `--filter` flag lets you specify filter rules:
 
 ```bash
 sudo conntrackd run \
-  --geoip.database /usr/local/share/GeoLite2-City.mmdb \
-  --filter.destination PRIVATE \
-  --filter.protocol UDP \
-  --filter.destination.addresses 142.250.186.163,2a00:1450:4001:82b::2003
-  --sink.journal.enable \
-  --service.log.format json \
-  --service.log.level debug
+  --filter "drop destination address 8.8.8.8" \
+  --filter "log protocol TCP and destination network PUBLIC" \
+  --filter "drop any" \
+  --sink.journal.enable
 ```
+
+**Filter Rules:**
+- Rules are evaluated in order (first-match wins)
+- Events are **logged by default** when no rule matches
+- `--filter` flag can be repeated for multiple rules
+- Use `drop any` as a final rule to block all non-matching events from being logged
+
+**Important:** Filters control which conntrack events are **logged**,
+not network traffic. Traffic always flows normally; filters only affect logging.
+
+**Common Filter Examples:**
+
+```bash
+# Don't log events to a specific IP
+--filter "drop destination address 8.8.8.8"
+
+# Log only NEW TCP connections (deny everything else)
+--filter "log type NEW and protocol TCP"
+--filter "drop any"
+
+# Don't log DNS to specific server
+--filter "drop destination address 10.19.80.100 on port 53"
+
+# Don't log any traffic to private networks
+--filter "drop destination network PRIVATE"
+
+# Log only traffic from public IPs using TCP
+--filter "log source network PUBLIC and protocol TCP"
+--filter "drop any"
+```
+
+See [docs/filter.md](docs/filter.md) for complete DSL documentation,
+including grammar, operators, and advanced examples.
+
+## Configuration Flags
+
+| Flag                    | Description                                       | Default                  |
+|-------------------------|---------------------------------------------------|--------------------------|
+| `--filter`              | Filter rule in DSL format (repeatable)            |                          |
+| `--geoip.database`      | Path to GeoIP database                            |                          |
+| `--service.log.level`   | Log level (debug, info, warn, error)              | info                     |
+| `--sink.journal.enable` | Enable journald sink                              |                          |
+| `--sink.syslog.enable`  | Enable syslog sink                                |                          |
+| `--sink.loki.enable`    | Enable Loki sink                                  |                          |
+| `--sink.stream.enable`  | Enable stream sink                                |                          |
+| `--sink.syslog.address` | Syslog address                                    | udp://localhost:514      |
+| `--sink.loki.address`   | Loki address                                      | http://localhost:3100    |
+| `--sink.loki.labels`    | Loki labels (comma-separated key=value pairs)     |                          |
+| `--sink.stream.writer`  | Stream writer (stdout, stderr, discard)           | stdout                   |
 
 ## Logging format
 
@@ -100,7 +131,8 @@ GEO location fields:
 - lat (latitude)
 - lon (longitude)
 
-Example log entry recorded by sink `syslog`:
+<details>
+<summary>Example log entry recorded by sink `syslog`</summary>
 
 ```json
 {
@@ -117,16 +149,18 @@ Example log entry recorded by sink `syslog`:
   "level": "INFO",
   "logger.name": "samber/slog-syslog",
   "logger.version": "v2.5.2",
-  "message": "UPDATE TCP connection from 2003:cf:1716:7b64:da80:83ff:fecd:da51/41348...",
+  "message": "UPDATE TCP connection from 2003:cf:1716:7b64:da80:83ff:fecd...",
   "timestamp": "2025-11-15T09:55:25.647544937Z"
 }
 ```
+</details>
 
-Example log entry recorded by sink `journal`:
+<details>
+<summary>Example log entry recorded by sink `journal`</summary>
 
 ```json
 {
-	"__CURSOR" : "s=b3c7821dbfce47a59b06797aea9028ca;i=6772d3;b=100da27bd8...",
+	"__CURSOR" : "s=b3c7821dbfce47a59b06797aea9028ca;i=6772d3;b=100da27bd...",
 	"_CAP_EFFECTIVE" : "1ffffffffff",
 	"EVENT_SPORT" : "39790",
 	"_SOURCE_REALTIME_TIMESTAMP" : "1763200187611509",
@@ -154,7 +188,7 @@ Example log entry recorded by sink `journal`:
 	"_SYSTEMD_INVOCATION_ID" : "021760b3373342b98aaeabf9d12d8d74",
 	"EVENT_FLOW" : "3478798157",
 	"_PID" : "3794900",
-	"_CMDLINE" : "conntrackd run --service.log.level debug --service.log.format ...",
+	"_CMDLINE" : "conntrackd run --service.log.level debug --service.log....",
 	"EVENT_PROT" : "TCP",
 	"_AUDIT_SESSION" : "1",
 	"_BOOT_ID" : "100da27bd8b94096b5c80cdac34d6063",
@@ -164,12 +198,14 @@ Example log entry recorded by sink `journal`:
 	"_AUDIT_LOGINUID" : "1000",
 	"_UID" : "0",
 	"EVENT_TYPE" : "UPDATE",
-	"MESSAGE" : "UPDATE TCP connection from 2003:cf:1716:7b64:da80:83ff:fecd:da51/39790..."
+	"MESSAGE" : "UPDATE TCP connection from 2003:cf:1716:7b64:da80:83ff:fe..."
 }
 
 ```
+</details>
 
-Example log entry recorded by sink `loki`:
+<details>
+<summary>Example log entry recorded by sink `loki`</summary>
 
 ```json
 {
@@ -194,11 +230,33 @@ Example log entry recorded by sink `loki`:
   "values": [
     [
       "1763537351540294198",
-      "UPDATE TCP connection from 2003:cf:1716:7b64:d6e9:8aff:fe4f:7a59/44950..."
+      "UPDATE TCP connection from 2003:cf:1716:7b64:d6e9:8aff:fe4f:7a59/44..."
     ]
   ]
 }
 ```
+</details>
+
+<details>
+<summary>Example log entry recorded by sink `stream`</summary>
+
+```json
+{
+  "time": "2025-11-22T11:34:43.181432081+01:00",
+  "level": "INFO",
+  "msg": "NEW TCP connection from 2003:cf:1716:7b64:da80:83ff:fecd:da51/4...",
+  "type": "NEW",
+  "flow": 2899284024,
+  "prot": "TCP",
+  "src": "2003:cf:1716:7b64:da80:83ff:fecd:da51",
+  "dst": "2a01:4f8:160:5372::2",
+  "sport": 41220,
+  "dport": 80,
+  "state": "SYN_SENT"
+}
+```
+</details>
+
 
 ## Security Notes
 
@@ -212,7 +270,8 @@ Example log entry recorded by sink `loki`:
 Contributions are welcome! Please fork the repository and submit a pull request.
 For major changes, open an issue first to discuss what you would like to change.
 
-Ensure that your code adheres to the existing style and includes appropriate tests.
+Ensure that your code adheres to the existing style and includes appropriate
+tests.
 
 ## License
 
