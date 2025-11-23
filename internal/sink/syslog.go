@@ -18,18 +18,18 @@ type Syslog struct {
 	Address string
 }
 
-func (s *Syslog) TargetSyslog(options *slog.HandlerOptions) (slog.Handler, error) {
-	slog.Debug("Initializing syslog sink", "data", s)
+var SyslogProtocols = []string{"udp", "tcp", "unix", "unixgram", "unixpacket"}
 
-	uri, err := url.Parse(s.Address)
+func (s *Syslog) TargetSyslog(options *slog.HandlerOptions) (slog.Handler, error) {
+	url, err := url.Parse(s.Address)
 	if err != nil {
 		return nil, err
 	}
 
-	network := uri.Scheme
-	address := uri.Host
+	network := url.Scheme
+	address := url.Host
 	if strings.HasPrefix(network, "unix") {
-		address = uri.Path
+		address = url.Path
 	}
 
 	writer, err := net.Dial(network, address)

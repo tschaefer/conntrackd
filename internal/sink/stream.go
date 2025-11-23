@@ -16,16 +16,17 @@ type Stream struct {
 	Writer string
 }
 
-func (s *Stream) TargetStream(options *slog.HandlerOptions) (slog.Handler, error) {
-	slog.Debug("Initializing stream sink.")
+var StreamWriters = []string{"stdout", "stderr", "discard"}
 
-	switch s.Writer {
-	case "stdout":
-		return slog.NewJSONHandler(os.Stdout, options), nil
-	case "stderr":
-		return slog.NewJSONHandler(os.Stderr, options), nil
-	case "discard":
-		return slog.NewJSONHandler(io.Discard, options), nil
+func (s *Stream) TargetStream(options *slog.HandlerOptions) (slog.Handler, error) {
+	writer := map[string]io.Writer{
+		"stdout":  os.Stdout,
+		"stderr":  os.Stderr,
+		"discard": io.Discard,
+	}
+
+	if w, ok := writer[s.Writer]; ok {
+		return slog.NewJSONHandler(w, options), nil
 	}
 
 	return nil, fmt.Errorf("invalid stream writer specified: %q", s.Writer)

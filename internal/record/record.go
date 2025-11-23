@@ -11,11 +11,10 @@ import (
 
 	"github.com/ti-mo/conntrack"
 	"github.com/tschaefer/conntrackd/internal/geoip"
-	"github.com/tschaefer/conntrackd/internal/logger"
 )
 
-func Record(event conntrack.Event, geo *geoip.Reader, sink *slog.Logger) {
-	logger.Trace("Conntrack Event", "data", event)
+func Record(event conntrack.Event, geo *geoip.GeoIP, logger *slog.Logger) {
+	slog.Debug("Conntrack Event", "data", event)
 
 	protocols := map[int]string{
 		syscall.IPPROTO_TCP: "TCP",
@@ -80,5 +79,5 @@ func Record(event conntrack.Event, geo *geoip.Reader, sink *slog.Logger) {
 		event.Flow.TupleOrig.Proto.DestinationPort,
 	)
 
-	sink.Info(msg, append(established, location...)...)
+	logger.Info(msg, append(established, location...)...)
 }

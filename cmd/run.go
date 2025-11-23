@@ -5,81 +5,70 @@ Licensed under the MIT License, see LICENSE file in the project root for details
 package cmd
 
 import (
+	"context"
 	"fmt"
-	"net/netip"
-	"net/url"
 	"os"
-	"slices"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	"github.com/spf13/cobra"
+	"github.com/tschaefer/conntrackd/internal/filter"
+	"github.com/tschaefer/conntrackd/internal/geoip"
+	"github.com/tschaefer/conntrackd/internal/logger"
 	"github.com/tschaefer/conntrackd/internal/service"
+	"github.com/tschaefer/conntrackd/internal/sink"
 )
 
-var srv = service.Service{}
+type Options struct {
+	logLevel      string
+	geoipDatabase string
+	filterRules   []string
+	sink          sink.Config
+}
 
-var (
-	validEventTypes    = []string{"NEW", "UPDATE", "DESTROY"}
-	validProtocols     = []string{"TCP", "UDP"}
-	validNetworks      = []string{"PUBLIC", "PRIVATE", "LOCAL", "MULTICAST"}
-	validLogLevels     = []string{"trace", "debug", "info", "error"}
-	validLogFormats    = []string{"text", "json"}
-	validSyslogSchemes = []string{"udp", "tcp", "unix", "unixgram", "unixpacket"}
-	validLokiSchemes   = []string{"http", "https"}
-	validStreamWriters = []string{"stdout", "stderr", "discard"}
-)
+var options = Options{}
 
 var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Run the conntrackd service",
 	Run: func(cmd *cobra.Command, args []string) {
-		if !srv.Sink.Journal.Enable &&
-			!srv.Sink.Syslog.Enable &&
-			!srv.Sink.Loki.Enable &&
-			!srv.Sink.Stream.Enable {
-			cobra.CheckErr(fmt.Errorf("at least one sink must be enabled"))
+		l, err := logger.NewLogger(options.logLevel)
+		if err != nil {
+			cobra.CheckErr(fmt.Sprintf("Failed to create logger: %v", err))
 		}
 
-		err := validateStringFlag("sink.syslog.address", srv.Sink.Syslog.Address, []string{})
-		cobra.CheckErr(err)
+		var g *geoip.GeoIP
+		if options.geoipDatabase != "" {
+			g, err = geoip.NewGeoIP(options.geoipDatabase)
+			if err != nil {
+				cobra.CheckErr(fmt.Sprintf("Failed to open geoip database: %v", err))
+			}
+			defer func() {
+				_ = g.Close()
+			}()
+		}
 
-		err = validateStringFlag("sink.loki.address", srv.Sink.Loki.Address, []string{})
-		cobra.CheckErr(err)
-
-		err = validateStringFlag("sink.stream.writer", srv.Sink.Stream.Writer, validStreamWriters)
-		cobra.CheckErr(err)
-
-		err = validateStringSliceFlag("filter.types", srv.Filter.EventTypes, validEventTypes)
-		cobra.CheckErr(err)
-
-		err = validateStringSliceFlag("filter.protocols", srv.Filter.Protocols, validProtocols)
-		cobra.CheckErr(err)
-
-		err = validateStringSliceFlag("filter.destination.networks", srv.Filter.Networks.Destinations, validNetworks)
-		cobra.CheckErr(err)
-
-		err = validateStringSliceFlag("filter.source.networks", srv.Filter.Networks.Sources, validNetworks)
-		cobra.CheckErr(err)
-
-		err = validateStringSliceFlag("filter.destination.addresses", srv.Filter.Addresses.Destinations, []string{})
-		cobra.CheckErr(err)
-
-		err = validateStringSliceFlag("filter.source.addresses", srv.Filter.Addresses.Sources, []string{})
-		cobra.CheckErr(err)
-
-		err = validateStringFlag("service.log.level", srv.Logger.Level, validLogLevels)
-		cobra.CheckErr(err)
-
-		err = validateStringFlag("service.log.format", srv.Logger.Format, validLogFormats)
-		cobra.CheckErr(err)
-
-		if srv.GeoIP.Database != "" {
-			if _, err := os.Stat(srv.GeoIP.Database); os.IsNotExist(err) {
-				cobra.CheckErr(fmt.Errorf("GeoIP database file does not exist: %s", srv.GeoIP.Database))
+		var f *filter.Filter
+		if len(options.filterRules) > 0 {
+			f, err = filter.NewFilter(options.filterRules)
+			if err != nil {
+				cobra.CheckErr(fmt.Sprintf("failed to compile filter rules: %v", err))
 			}
 		}
 
-		if err := srv.Run(); err != nil {
+		s, err := sink.NewSink(&options.sink)
+		if err != nil {
+			cobra.CheckErr(fmt.Sprintf("failed to initialize sink: %v", err))
+		}
+
+		service, err := service.NewService(l, g, f, s)
+		cobra.CheckErr(err)
+
+		ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+		defer stop()
+
+		if tranquil := service.Run(ctx); !tranquil {
 			os.Exit(1)
 		}
 	},
@@ -88,99 +77,28 @@ var runCmd = &cobra.Command{
 func init() {
 	runCmd.CompletionOptions.SetDefaultShellCompDirective(cobra.ShellCompDirectiveNoFileComp)
 
-	runCmd.Flags().StringSliceVar(&srv.Filter.EventTypes, "filter.types", nil, "Filter by event type (NEW,UPDATE,DESTROY)")
-	runCmd.Flags().StringSliceVar(&srv.Filter.Protocols, "filter.protocols", nil, "Filter by protocol (TCP,UDP)")
-	runCmd.Flags().StringSliceVar(&srv.Filter.Networks.Destinations, "filter.destination.networks", nil, "Filter by destination networks (PUBLIC,PRIVATE,LOCAL,MULTICAST)")
-	runCmd.Flags().StringSliceVar(&srv.Filter.Networks.Sources, "filter.source.networks", nil, "Filter by sources networks (PUBLIC,PRIVATE,LOCAL,MULTICAST)")
-	runCmd.Flags().StringSliceVar(&srv.Filter.Addresses.Destinations, "filter.destination.addresses", nil, "Filter by destination IP addresses")
-	runCmd.Flags().StringSliceVar(&srv.Filter.Addresses.Sources, "filter.source.addresses", nil, "Filter by source IP addresses")
-	runCmd.Flags().UintSliceVar(&srv.Filter.Ports.Destinations, "filter.destination.ports", nil, "Filter by destination ports")
-	runCmd.Flags().UintSliceVar(&srv.Filter.Ports.Sources, "filter.source.ports", nil, "Filter by source ports")
+	runCmd.Flags().StringArrayVar(&options.filterRules, "filter", nil, "Filter rules in DSL format (repeatable, first-match wins)")
 
-	runCmd.Flags().StringVar(&srv.Logger.Format, "service.log.format", "", "Log format (text,json)")
-	runCmd.Flags().StringVar(&srv.Logger.Level, "service.log.level", "", "Log level (debug,info)")
+	runCmd.Flags().StringVar(&options.logLevel, "log.level", "info", fmt.Sprintf("Log level (%s)", strings.Join(logger.Levels, ", ")))
+	_ = runCmd.RegisterFlagCompletionFunc("log.level", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return logger.Levels, cobra.ShellCompDirectiveNoFileComp
+	})
 
-	runCmd.Flags().StringVar(&srv.GeoIP.Database, "geoip.database", "", "Path to GeoIP database")
-
-	runCmd.Flags().BoolVar(&srv.Sink.Journal.Enable, "sink.journal.enable", false, "Enable journald sink")
-	runCmd.Flags().BoolVar(&srv.Sink.Syslog.Enable, "sink.syslog.enable", false, "Enable syslog sink")
-	runCmd.Flags().StringVar(&srv.Sink.Syslog.Address, "sink.syslog.address", "udp://localhost:514", "Syslog address")
-	runCmd.Flags().BoolVar(&srv.Sink.Loki.Enable, "sink.loki.enable", false, "Enable Loki sink")
-	runCmd.Flags().StringVar(&srv.Sink.Loki.Address, "sink.loki.address", "http://localhost:3100", "Loki address")
-	runCmd.Flags().StringSliceVar(&srv.Sink.Loki.Labels, "sink.loki.labels", nil, "Additional labels for Loki sink in key=value format")
-	runCmd.Flags().BoolVar(&srv.Sink.Stream.Enable, "sink.stream.enable", false, "Enable stream sink")
-	runCmd.Flags().StringVar(&srv.Sink.Stream.Writer, "sink.stream.writer", "stdout", "Stream writer (stdout,stderr,discard)")
-
+	runCmd.Flags().StringVar(&options.geoipDatabase, "geoip.database", "", "Path to GeoIP database")
 	_ = runCmd.RegisterFlagCompletionFunc("geoip.database", cobra.FixedCompletions(nil, cobra.ShellCompDirectiveDefault))
 
-	_ = runCmd.RegisterFlagCompletionFunc("service.log.level", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return validLogLevels, cobra.ShellCompDirectiveNoFileComp
-	})
+	runCmd.Flags().BoolVar(&options.sink.Journal.Enable, "sink.journal.enable", false, "Enable journald sink")
+	runCmd.Flags().BoolVar(&options.sink.Syslog.Enable, "sink.syslog.enable", false, "Enable syslog sink")
+	runCmd.Flags().StringVar(&options.sink.Syslog.Address, "sink.syslog.address", "udp://localhost:514", "Syslog address")
 
-	_ = runCmd.RegisterFlagCompletionFunc("service.log.format", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return validLogFormats, cobra.ShellCompDirectiveNoFileComp
-	})
+	runCmd.Flags().BoolVar(&options.sink.Loki.Enable, "sink.loki.enable", false, "Enable Loki sink")
+	runCmd.Flags().StringVar(&options.sink.Loki.Address, "sink.loki.address", "http://localhost:3100", "Loki address")
+	runCmd.Flags().StringSliceVar(&options.sink.Loki.Labels, "sink.loki.labels", nil, "Additional labels for Loki sink in key=value format")
 
+	runCmd.Flags().BoolVar(&options.sink.Stream.Enable, "sink.stream.enable", false, "Enable stream sink")
+	runCmd.Flags().StringVar(&options.sink.Stream.Writer, "sink.stream.writer", "stdout", fmt.Sprintf("Stream writer (%s)", strings.Join(sink.StreamWriters, ", ")))
 	_ = runCmd.RegisterFlagCompletionFunc("sink.stream.writer", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return validStreamWriters, cobra.ShellCompDirectiveNoFileComp
+		return sink.StreamWriters, cobra.ShellCompDirectiveNoFileComp
 	})
-}
 
-func validateStringSliceFlag(flag string, values []string, validValues []string) error {
-	if flag == "filter.source.addresses" || flag == "filter.destination.addresses" {
-		for _, v := range values {
-			if _, err := netip.ParseAddr(v); err != nil {
-				return fmt.Errorf("invalid IP address '%s' for '--%s'", v, flag)
-			}
-		}
-		return nil
-	}
-
-	for _, v := range values {
-		if !slices.Contains(validValues, v) {
-			return fmt.Errorf("invalid value '%s' for '--%s' . Valid values are: %s", v, flag, validValues)
-		}
-	}
-	return nil
-}
-
-func validateStringFlag(flag string, value string, validValues []string) error {
-	if value == "" {
-		return nil
-	}
-
-	if flag == "sink.syslog.address" || flag == "sink.loki.address" {
-		url, err := url.Parse(value)
-		if err != nil {
-			return fmt.Errorf("invalid URL '%s' for '--%s'", value, flag)
-		}
-
-		if flag == "sink.syslog.address" {
-			if !slices.Contains(validSyslogSchemes, url.Scheme) {
-				return fmt.Errorf("invalid URL scheme '%s' for '--%s'. Valid schemes are: udp, tcp, unix, unixgram unixpacket", url.Scheme, flag)
-			}
-			if url.Host == "" && !strings.HasPrefix(url.Scheme, "unix") {
-				return fmt.Errorf("invalid URL '%s' for '--%s'. Host is missing", value, flag)
-			}
-			if url.Path == "" && strings.HasPrefix(url.Scheme, "unix") {
-				return fmt.Errorf("invalid URL '%s' for '--%s'. Path is missing", value, flag)
-			}
-		}
-
-		if flag == "sink.loki.address" {
-			if !slices.Contains(validLokiSchemes, url.Scheme) {
-				return fmt.Errorf("invalid URL scheme '%s' for '--%s'. Valid schemes are: http, https", url.Scheme, flag)
-			}
-			if url.Host == "" {
-				return fmt.Errorf("invalid URL '%s' for '--%s'. Host is missing", value, flag)
-			}
-		}
-
-		return nil
-	}
-
-	if !slices.Contains(validValues, value) {
-		return fmt.Errorf("invalid value '%s' for '--%s' . Valid values are: %s", value, flag, validValues)
-	}
-	return nil
 }

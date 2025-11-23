@@ -15,8 +15,6 @@ type Journal struct {
 }
 
 func (j *Journal) TargetJournal(options *slog.HandlerOptions) (slog.Handler, error) {
-	slog.Debug("Initializing systemd journal sink.")
-
 	slogjournal.FieldPrefix = "EVENT"
 	o := &slogjournal.Option{
 		Level: options.Level,
