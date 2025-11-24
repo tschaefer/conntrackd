@@ -93,13 +93,59 @@ not network traffic. Traffic always flows normally; filters only affect logging.
 See [docs/filter.md](docs/filter.md) for complete DSL documentation,
 including grammar, operators, and advanced examples.
 
+## Configuration
+
+conntrackd can be configured via command-line flags, configuration files,
+environment variables, or a combination of these methods.
+
+### Configuration Files
+
+By default, conntrackd searches for a configuration file named
+`conntrackd.(yaml|yml|json|toml)` in `/etc/conntrackd` directory.
+
+You can also specify a custom config file using the `--config` flag:
+
+```bash
+sudo conntrackd run --config /path/to/config.yaml
+```
+Configuration files support YAML, JSON, and TOML formats.
+See [contrib/config.yaml](contrib/config.yaml) for a complete example
+configuration file.
+
+### Environment Variables
+
+Configuration values can be set via environment variables with the
+`CONNTRACKD_` prefix:
+
+```bash
+export CONNTRACKD_LOG_LEVEL=debug
+export CONNTRACKD_SINK_STREAM_WRITER=discard
+sudo -E conntrackd run
+```
+
+Use underscores (`_`) to represent nested keys:
+`sink.stream.writer` → `CONNTRACKD_SINK_STREAM_WRITER`
+
+### Priority Order
+
+Configuration values are applied in the following order
+(later overrides earlier):
+
+1. Default values
+2. Configuration file
+3. Environment variables
+4. Command-line flags
+
+**Note:** Command-line flags always have the highest priority.
+
 ## Configuration Flags
 
 | Flag                    | Description                                       | Default                  |
 |-------------------------|---------------------------------------------------|--------------------------|
+| `--config`              | Path to configuration file                        |                          |
 | `--filter`              | Filter rule in DSL format (repeatable)            |                          |
 | `--geoip.database`      | Path to GeoIP database                            |                          |
-| `--service.log.level`   | Log level (debug, info, warn, error)              | info                     |
+| `--log.level`           | Log level (debug, info, warn, error)              | info                     |
 | `--sink.journal.enable` | Enable journald sink                              |                          |
 | `--sink.syslog.enable`  | Enable syslog sink                                |                          |
 | `--sink.loki.enable`    | Enable Loki sink                                  |                          |

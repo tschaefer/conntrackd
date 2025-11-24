@@ -13,6 +13,8 @@ import (
 	"syscall"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"github.com/tschaefer/conntrackd/internal/config"
 	"github.com/tschaefer/conntrackd/internal/filter"
 	"github.com/tschaefer/conntrackd/internal/geoip"
 	"github.com/tschaefer/conntrackd/internal/logger"
@@ -27,12 +29,19 @@ type Options struct {
 	sink          sink.Config
 }
 
-var options = Options{}
+var cfgFile string
 
 var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Run the conntrackd service",
+	PreRun: func(cmd *cobra.Command, args []string) {
+		if err := config.InitConfig(cfgFile); err != nil {
+			cobra.CheckErr(fmt.Sprintf("Failed to initialize configuration: %v", err))
+		}
+	},
 	Run: func(cmd *cobra.Command, args []string) {
+		options := readConfig()
+
 		l, err := logger.NewLogger(options.logLevel)
 		if err != nil {
 			cobra.CheckErr(fmt.Sprintf("Failed to create logger: %v", err))
@@ -74,29 +83,73 @@ var runCmd = &cobra.Command{
 	},
 }
 
+func readConfig() *Options {
+	return &Options{
+		logLevel:      viper.GetString("log.level"),
+		geoipDatabase: viper.GetString("geoip.database"),
+		filterRules:   viper.GetStringSlice("filter"),
+		sink: sink.Config{
+			Journal: sink.Journal{
+				Enable: viper.GetBool("sink.journal.enable"),
+			},
+			Syslog: sink.Syslog{
+				Enable:  viper.GetBool("sink.syslog.enable"),
+				Address: viper.GetString("sink.syslog.address"),
+			},
+			Loki: sink.Loki{
+				Enable:  viper.GetBool("sink.loki.enable"),
+				Address: viper.GetString("sink.loki.address"),
+				Labels:  viper.GetStringSlice("sink.loki.labels"),
+			},
+			Stream: sink.Stream{
+				Enable: viper.GetBool("sink.stream.enable"),
+				Writer: viper.GetString("sink.stream.writer"),
+			},
+		},
+	}
+}
+
 func init() {
 	runCmd.CompletionOptions.SetDefaultShellCompDirective(cobra.ShellCompDirectiveNoFileComp)
 
-	runCmd.Flags().StringArrayVar(&options.filterRules, "filter", nil, "Filter rules in DSL format (repeatable, first-match wins)")
+	runCmd.Flags().StringVar(&cfgFile, "config", "", "config file (default is /etc/conntrackd/conntrackd.{yaml,json,toml})")
 
-	runCmd.Flags().StringVar(&options.logLevel, "log.level", "info", fmt.Sprintf("Log level (%s)", strings.Join(logger.Levels, ", ")))
+	runCmd.Flags().StringArray("filter", nil, "Filter rules in DSL format (repeatable, first-match wins)")
+	_ = viper.BindPFlag("filter", runCmd.Flags().Lookup("filter"))
+
+	runCmd.Flags().String("log.level", "info", fmt.Sprintf("Log level (%s)", strings.Join(logger.Levels, ", ")))
+	_ = viper.BindPFlag("log.level", runCmd.Flags().Lookup("log.level"))
 	_ = runCmd.RegisterFlagCompletionFunc("log.level", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return logger.Levels, cobra.ShellCompDirectiveNoFileComp
 	})
 
-	runCmd.Flags().StringVar(&options.geoipDatabase, "geoip.database", "", "Path to GeoIP database")
+	runCmd.Flags().String("geoip.database", "", "Path to GeoIP database")
+	_ = viper.BindPFlag("geoip.database", runCmd.Flags().Lookup("geoip.database"))
 	_ = runCmd.RegisterFlagCompletionFunc("geoip.database", cobra.FixedCompletions(nil, cobra.ShellCompDirectiveDefault))
 
-	runCmd.Flags().BoolVar(&options.sink.Journal.Enable, "sink.journal.enable", false, "Enable journald sink")
-	runCmd.Flags().BoolVar(&options.sink.Syslog.Enable, "sink.syslog.enable", false, "Enable syslog sink")
-	runCmd.Flags().StringVar(&options.sink.Syslog.Address, "sink.syslog.address", "udp://localhost:514", "Syslog address")
+	runCmd.Flags().Bool("sink.journal.enable", false, "Enable journald sink")
+	_ = viper.BindPFlag("sink.journal.enable", runCmd.Flags().Lookup("sink.journal.enable"))
 
-	runCmd.Flags().BoolVar(&options.sink.Loki.Enable, "sink.loki.enable", false, "Enable Loki sink")
-	runCmd.Flags().StringVar(&options.sink.Loki.Address, "sink.loki.address", "http://localhost:3100", "Loki address")
-	runCmd.Flags().StringSliceVar(&options.sink.Loki.Labels, "sink.loki.labels", nil, "Additional labels for Loki sink in key=value format")
+	runCmd.Flags().Bool("sink.syslog.enable", false, "Enable syslog sink")
+	_ = viper.BindPFlag("sink.syslog.enable", runCmd.Flags().Lookup("sink.syslog.enable"))
 
-	runCmd.Flags().BoolVar(&options.sink.Stream.Enable, "sink.stream.enable", false, "Enable stream sink")
-	runCmd.Flags().StringVar(&options.sink.Stream.Writer, "sink.stream.writer", "stdout", fmt.Sprintf("Stream writer (%s)", strings.Join(sink.StreamWriters, ", ")))
+	runCmd.Flags().String("sink.syslog.address", "udp://localhost:514", "Syslog address")
+	_ = viper.BindPFlag("sink.syslog.address", runCmd.Flags().Lookup("sink.syslog.address"))
+
+	runCmd.Flags().Bool("sink.loki.enable", false, "Enable Loki sink")
+	_ = viper.BindPFlag("sink.loki.enable", runCmd.Flags().Lookup("sink.loki.enable"))
+
+	runCmd.Flags().String("sink.loki.address", "http://localhost:3100", "Loki address")
+	_ = viper.BindPFlag("sink.loki.address", runCmd.Flags().Lookup("sink.loki.address"))
+
+	runCmd.Flags().StringSlice("sink.loki.labels", nil, "Additional labels for Loki sink in key=value format")
+	_ = viper.BindPFlag("sink.loki.labels", runCmd.Flags().Lookup("sink.loki.labels"))
+
+	runCmd.Flags().Bool("sink.stream.enable", false, "Enable stream sink")
+	_ = viper.BindPFlag("sink.stream.enable", runCmd.Flags().Lookup("sink.stream.enable"))
+
+	runCmd.Flags().String("sink.stream.writer", "stdout", fmt.Sprintf("Stream writer (%s)", strings.Join(sink.StreamWriters, ", ")))
+	_ = viper.BindPFlag("sink.stream.writer", runCmd.Flags().Lookup("sink.stream.writer"))
 	_ = runCmd.RegisterFlagCompletionFunc("sink.stream.writer", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return sink.StreamWriters, cobra.ShellCompDirectiveNoFileComp
 	})

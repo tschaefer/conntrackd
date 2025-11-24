@@ -1,0 +1,54 @@
+# conntrackd configuration file
+#
+# This is a sample configuration file for conntrackd. By default, conntrackd
+# searches for a configuration file in /etc/conntrackd/ directory.
+# Supported file names: conntrackd.yaml, conntrackd.json, or conntrackd.toml
+#
+# You can also specify a custom config file using the --config flag:
+#   conntrackd run --config /path/to/config.yaml
+#
+# All configuration options can be overridden by command-line flags or
+# environment variables.
+
+# Log level: debug, info, warn, error (default: info)
+---
+log:
+  level: info
+
+# Path to GeoIP database (optional)
+# Download from: https://git.io/GeoLite2-City.mmdb
+geoip:
+  database: "/var/lib/GeoIP/GeoLite2-City.mmdb"
+
+# Filter rules (optional)
+# Rules are evaluated in order (first-match wins)
+# Events are logged by default when no rule matches
+filter:
+  - "drop destination address 8.8.8.8"
+  - "log protocol TCP and destination network PUBLIC"
+  - "drop any"
+
+# Sink configuration
+# At least one sink must be enabled
+sink:
+  # Journald sink (systemd journal)
+  journal:
+    enable: false
+
+  # Syslog sink
+  syslog:
+    enable: false
+    address: "udp://localhost:514"
+
+  # Loki sink (Grafana Loki)
+  loki:
+    enable: false
+    address: "http://localhost:3100"
+    labels:
+      - "env=production"
+      - "host=myhost"
+
+  # Stream sink (stdout/stderr)
+  stream:
+    enable: true
+    writer: "stdout"  # Options: stdout, stderr, discard
