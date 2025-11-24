@@ -29,8 +29,14 @@ checksum: dist
 
 .PHONY: test
 test:
-	test -z $(shell go test -v ./... >/dev/null 2>&1 || echo 1) || (echo "[WARN] Fix test issues" && exit 1)
+	test -z $(shell go test -v ./internal/... >/dev/null 2>&1 || echo 1) || (echo "[WARN] Fix test issues" && exit 1)
+
+.PHONY: coverage
+coverage:
+	test -z $(shell go test -coverprofile=coverage.out ./internal/... > /dev/null 2>&1 || echo 1) || (echo "[WARN] Fix coverage issues" && exit 1)
+	test -z $(shell go tool cover -html=coverage.out -o coverage.html > /dev/null 2>&1 || echo 1) || (echo "[WARN] Fix coverage issues" && exit 1)
 
 .PHONY: clean
 clean:
 	rm -rf bin
+	rm -f coverage.out coverage.html

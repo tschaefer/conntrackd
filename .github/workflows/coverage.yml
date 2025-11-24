@@ -1,0 +1,33 @@
+---
+name: coverage
+
+on:  # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - 'main'
+
+jobs:
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Install dependencies
+        run: go mod download
+      - name: Get code coverage
+        run: |
+          curl -sSfL https://git.io/GeoLite2-City.mmdb -o /tmp/GeoLite2-City.mmdb && \
+            go test -coverprofile=coverage.out -covermode=atomic ./...
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage.out
+          flags: unittests
+          verbose: true
