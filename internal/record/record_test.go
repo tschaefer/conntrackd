@@ -7,10 +7,8 @@ package record
 import (
 	"bytes"
 	"encoding/json"
-	"io"
 	"log/slog"
 	"maps"
-	"net/http"
 	"net/netip"
 	"os"
 	"slices"
@@ -22,8 +20,7 @@ import (
 	"github.com/tschaefer/conntrackd/internal/geoip"
 )
 
-const geoDatabasePath = "/tmp/GeoLite2-City.mmdb"
-const geoDatabaseUrl = "https://git.io/GeoLite2-City.mmdb"
+var geoDatabasePath string
 
 var log bytes.Buffer
 
@@ -38,31 +35,6 @@ func setupLogger() *slog.Logger {
 		},
 	}
 	return slog.New(slog.NewJSONHandler(&log, loggerOptions))
-}
-
-func setupGeoDatabase() {
-	if _, err := os.Stat(geoDatabasePath); os.IsNotExist(err) {
-		resp, err := http.Get(geoDatabaseUrl)
-		if err != nil {
-			panic(err)
-		}
-		defer func() {
-			_ = resp.Body.Close()
-		}()
-
-		out, err := os.Create(geoDatabasePath)
-		if err != nil {
-			panic(err)
-		}
-		defer func() {
-			_ = out.Close()
-		}()
-
-		_, err = io.Copy(out, resp.Body)
-		if err != nil {
-			panic(err)
-		}
-	}
 }
 
 func recordLogsBasicData(t *testing.T) {
@@ -132,14 +104,15 @@ func recordLogsWithGeoIPData(t *testing.T) {
 }
 
 func TestRecord(t *testing.T) {
-	setupGeoDatabase()
+	var ok bool
+	geoDatabasePath, ok = os.LookupEnv("CONNTRACKD_GEOIP_DATABASE")
+	if !ok || geoDatabasePath == "" {
+		geoDatabasePath = "/tmp/GeoLite2-City.mmdb"
+	}
+	if _, err := os.Stat(geoDatabasePath); os.IsNotExist(err) {
+		t.Skip("GeoIP database not found, skipping GeoIP tests")
+	}
 
 	t.Run("Record logs basic data", recordLogsBasicData)
 	t.Run("Record logs with GeoIP data", recordLogsWithGeoIPData)
-
-	skip, ok := os.LookupEnv("KEEP_GEOIP_DB")
-	if ok && skip == "1" || skip == "true" {
-		return
-	}
-	_ = os.Remove(geoDatabasePath)
 }
