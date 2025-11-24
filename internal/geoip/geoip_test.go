@@ -5,8 +5,6 @@ Licensed under the MIT License, see LICENSE file in the project root for details
 package geoip
 
 import (
-	"io"
-	"net/http"
 	"net/netip"
 	"os"
 	"testing"
@@ -15,33 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const geoDatabasePath = "/tmp/GeoLite2-City.mmdb"
-const geoDatabaseUrl = "https://git.io/GeoLite2-City.mmdb"
-
-func setupGeoDatabase() {
-	if _, err := os.Stat(geoDatabasePath); os.IsNotExist(err) {
-		resp, err := http.Get(geoDatabaseUrl)
-		if err != nil {
-			panic(err)
-		}
-		defer func() {
-			_ = resp.Body.Close()
-		}()
-
-		out, err := os.Create(geoDatabasePath)
-		if err != nil {
-			panic(err)
-		}
-		defer func() {
-			_ = out.Close()
-		}()
-
-		_, err = io.Copy(out, resp.Body)
-		if err != nil {
-			panic(err)
-		}
-	}
-}
+var geoDatabasePath string
 
 func newReturnsError_InvalidDatabase(t *testing.T) {
 	_, err := NewGeoIP("../../README.md")
@@ -49,6 +21,7 @@ func newReturnsError_InvalidDatabase(t *testing.T) {
 }
 
 func newReturnsInstance_ValidDatabase(t *testing.T) {
+	t.Logf("Using GeoIP database at %s", geoDatabasePath)
 	geoIP, err := NewGeoIP(geoDatabasePath)
 	assert.NoError(t, err)
 	assert.NotNil(t, geoIP)
@@ -86,16 +59,17 @@ func locationReturnsLocation_ResolvedIP(t *testing.T) {
 }
 
 func TestGeoIP(t *testing.T) {
-	setupGeoDatabase()
+	var ok bool
+	geoDatabasePath, ok = os.LookupEnv("CONNTRACKD_GEOIP_DATABASE")
+	if !ok || geoDatabasePath == "" {
+		geoDatabasePath = "/tmp/GeoLite2-City.mmdb"
+	}
+	if _, err := os.Stat(geoDatabasePath); os.IsNotExist(err) {
+		t.Skip("GeoIP database not found, skipping GeoIP tests")
+	}
 
 	t.Run("New returns error for invalid database", newReturnsError_InvalidDatabase)
 	t.Run("New returns instance for valid database", newReturnsInstance_ValidDatabase)
 	t.Run("Location returns nil for unresolved IPs", locationReturnsNil_UnresolvedIP)
 	t.Run("Location returns location for resolved IPs", locationReturnsLocation_ResolvedIP)
-
-	skip, ok := os.LookupEnv("KEEP_GEOIP_DB")
-	if ok && skip == "1" || skip == "true" {
-		return
-	}
-	_ = os.Remove(geoDatabasePath)
 }

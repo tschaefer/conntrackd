@@ -30,7 +30,6 @@ jobs:
       - name: Build binaries
         run: |
           curl -sSfL https://git.io/GeoLite2-City.mmdb -o /tmp/GeoLite2-City.mmdb && \
-            export KEEP_GEOIP_DB=true && \
             make all
       - name: Create SHA256 checksums
         run: make checksum

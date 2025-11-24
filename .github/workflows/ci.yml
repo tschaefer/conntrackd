@@ -34,5 +34,4 @@ jobs:
       - name: Run tests
         run: |
           curl -sSfL https://git.io/GeoLite2-City.mmdb -o /tmp/GeoLite2-City.mmdb && \
-            export KEEP_GEOIP_DB=true && \
             go test -v ./...
