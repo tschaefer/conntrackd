@@ -7,6 +7,7 @@ package record
 import (
 	"fmt"
 	"log/slog"
+	"net/netip"
 	"syscall"
 
 	"github.com/ti-mo/conntrack"
@@ -71,13 +72,24 @@ func Record(event conntrack.Event, geo *geoip.GeoIP, logger *slog.Logger) {
 		}
 	}
 
-	msg := fmt.Sprintf("%s %s connection from %s/%d to %s/%d",
+	msg := fmt.Sprintf("%s %s connection from %s to %s",
 		eType, prot,
-		event.Flow.TupleOrig.IP.SourceAddress.String(),
-		event.Flow.TupleOrig.Proto.SourcePort,
-		event.Flow.TupleOrig.IP.DestinationAddress.String(),
-		event.Flow.TupleOrig.Proto.DestinationPort,
+		formatAddrPort(
+			event.Flow.TupleOrig.IP.SourceAddress,
+			event.Flow.TupleOrig.Proto.SourcePort,
+		),
+		formatAddrPort(
+			event.Flow.TupleOrig.IP.DestinationAddress,
+			event.Flow.TupleOrig.Proto.DestinationPort,
+		),
 	)
 
 	logger.Info(msg, append(established, location...)...)
+}
+
+func formatAddrPort(addr netip.Addr, port uint16) string {
+	if addr.Is6() {
+		return fmt.Sprintf("[%s]:%d", addr.String(), port)
+	}
+	return fmt.Sprintf("%s:%d", addr.String(), port)
 }
