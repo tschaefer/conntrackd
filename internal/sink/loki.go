@@ -63,8 +63,10 @@ func (l *Loki) TargetLoki(options *slog.HandlerOptions) (slog.Handler, error) {
 	}
 
 	o := &slogloki.Option{
-		Client: client,
-		Level:  options.Level,
+		Client:                    client,
+		Level:                     options.Level,
+		HandleRecordsWithMetadata: true,
+		Converter:                 slogloki.RemoveAttrsConverter,
 	}
 	return o.NewLokiHandler(), nil
 }
