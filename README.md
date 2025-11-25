@@ -170,7 +170,7 @@ Additionally TCP field:
 
 - state (TCP connection state)
 
-GEO location fields:
+GEO location fields for source and destination if applicable:
 
 - city (city name)
 - country (country name)
@@ -195,7 +195,7 @@ GEO location fields:
   "level": "INFO",
   "logger.name": "samber/slog-syslog",
   "logger.version": "v2.5.2",
-  "message": "UPDATE TCP connection from 2003:cf:1716:7b64:da80:83ff:fecd...",
+  "message": "UPDATE TCP connection from [2003:cf:1716:7b64:da80:83ff:fecd...",
   "timestamp": "2025-11-15T09:55:25.647544937Z"
 }
 ```
@@ -244,7 +244,7 @@ GEO location fields:
 	"_AUDIT_LOGINUID" : "1000",
 	"_UID" : "0",
 	"EVENT_TYPE" : "UPDATE",
-	"MESSAGE" : "UPDATE TCP connection from 2003:cf:1716:7b64:da80:83ff:fe..."
+	"MESSAGE" : "UPDATE TCP connection from [2003:cf:1716:7b64:da80:83ff:fe..."
 }
 
 ```
@@ -256,30 +256,35 @@ GEO location fields:
 ```json
 {
   "stream": {
-    "city": "Nuremberg",
-    "country": "Germany",
+    "dcity": "Falkenstein",
+    "dcountry": "Germany",
     "detected_level": "INFO",
+    "dlat": "50.4777",
+    "dlon": "12.3649",
     "dport": "443",
-    "dst": "2a01:4f8:1c1c:b751::1",
-    "flow": "574674164",
-    "host": "core.example.com",
-    "lat": "49.4527",
+    "dst": "2a01:4f8:160:5372::2",
+    "flow": "122448605",
+    "host": "core.example",
     "level": "INFO",
-    "lon": "11.0783",
     "prot": "TCP",
+    "scity": "Falkenstein",
+    "scountry": "Germany",
     "service_name": "conntrackd",
-    "sport": "44950",
-    "src": "2003:cf:1716:7b64:d6e9:8aff:fe4f:7a59",
-    "state": "TIME_WAIT",
-    "type": "UPDATE"
+    "slat": "50.4777",
+    "slon": "12.3649",
+    "sport": "54756",
+    "src": "2003:cf:1716:7b64:da80:83ff:fecd:da51",
+    "state": "SYN_SENT",
+    "type": "NEW"
   },
   "values": [
     [
-      "1763537351540294198",
-      "UPDATE TCP connection from 2003:cf:1716:7b64:d6e9:8aff:fe4f:7a59/44..."
+      "1764068411229712376",
+      "NEW TCP connection from [2003:cf:1716:7b64:da80:83ff:fecd:da51]:54756..."
     ]
   ]
 }
+
 ```
 </details>
 
@@ -288,17 +293,25 @@ GEO location fields:
 
 ```json
 {
-  "time": "2025-11-22T11:34:43.181432081+01:00",
+  "time": "2025-11-25T11:58:21.99256561+01:00",
   "level": "INFO",
-  "msg": "NEW TCP connection from 2003:cf:1716:7b64:da80:83ff:fecd:da51/4...",
+  "msg": "NEW TCP connection from [2003:cf:1716:7b64:da80:83ff:fecd:da51]:4...",
   "type": "NEW",
-  "flow": 2899284024,
+  "flow": 901634022,
   "prot": "TCP",
   "src": "2003:cf:1716:7b64:da80:83ff:fecd:da51",
   "dst": "2a01:4f8:160:5372::2",
-  "sport": 41220,
-  "dport": 80,
-  "state": "SYN_SENT"
+  "sport": 44646,
+  "dport": 443,
+  "state": "SYN_SENT",
+  "scity": "Falkenstein",
+  "scountry": "Germany",
+  "slat": 50.4777,
+  "slon": 12.3649,
+  "dcity": "Falkenstein",
+  "dcountry": "Germany",
+  "dlat": 50.4777,
+  "dlon": 12.3649
 }
 ```
 </details>
