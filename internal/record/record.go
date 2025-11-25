@@ -20,7 +20,7 @@ func Record(event conntrack.Event, geo *geoip.GeoIP, logger *slog.Logger) {
 	prot := getProtocol(event)
 	eType := getType(event)
 
-	established := []any{
+	record := []any{
 		slog.String("type", eType),
 		slog.Uint64("flow", uint64(event.Flow.ID)),
 		slog.String("prot", prot),
@@ -32,7 +32,7 @@ func Record(event conntrack.Event, geo *geoip.GeoIP, logger *slog.Logger) {
 
 	state, ok := getTCPState(event)
 	if ok {
-		established = append(established, slog.String("tcp_state", state))
+		record = append(record, slog.String("tcp_state", state))
 	}
 
 	location := getLocation(event, geo)
@@ -49,7 +49,7 @@ func Record(event conntrack.Event, geo *geoip.GeoIP, logger *slog.Logger) {
 		),
 	)
 
-	logger.Info(msg, append(established, location...)...)
+	logger.Info(msg, append(record, location...)...)
 }
 
 func getProtocol(event conntrack.Event) string {
