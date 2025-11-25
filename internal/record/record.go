@@ -105,26 +105,27 @@ func getLocation(event conntrack.Event, geo *geoip.GeoIP) []any {
 		return nil
 	}
 
-	var locGroups []any
+	var location []any
 	for dir, addr := range map[string]netip.Addr{
-		"src": event.Flow.TupleOrig.IP.SourceAddress,
-		"dst": event.Flow.TupleOrig.IP.DestinationAddress,
+		"s": netip.MustParseAddr("78.47.60.169"), // event.Flow.TupleOrig.IP.SourceAddress,
+		"d": event.Flow.TupleOrig.IP.DestinationAddress,
 	} {
 		if loc := geo.Location(addr); loc != nil {
-			locGroups = append(locGroups, slog.Group(dir,
-				slog.String("city", loc.City),
-				slog.String("country", loc.Country),
-				slog.Float64("lat", loc.Lat),
-				slog.Float64("lon", loc.Lon),
-			))
+			data := []any{
+				slog.String(dir+"city", loc.City),
+				slog.String(dir+"country", loc.Country),
+				slog.Float64(dir+"lat", loc.Lat),
+				slog.Float64(dir+"lon", loc.Lon),
+			}
+			location = append(location, data...)
 		}
 	}
 
-	if len(locGroups) == 0 {
+	if len(location) == 0 {
 		return nil
 	}
 
-	return []any{slog.Group("location", locGroups...)}
+	return location
 }
 
 func formatAddrPort(addr netip.Addr, port uint16) string {
