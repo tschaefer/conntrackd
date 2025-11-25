@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"slices"
 	"strings"
 
 	kitlog "github.com/go-kit/log"
@@ -17,6 +18,7 @@ import (
 	"github.com/grafana/loki-client-go/loki"
 	"github.com/grafana/loki-client-go/pkg/labelutil"
 	"github.com/prometheus/common/model"
+	slogcommon "github.com/samber/slog-common"
 	slogloki "github.com/samber/slog-loki/v3"
 	"github.com/tschaefer/conntrackd/internal/logger"
 )
@@ -33,6 +35,11 @@ type Loki struct {
 }
 
 var LokiProtocols = []string{"http", "https"}
+var labelAttrs = []string{
+	"flow", "type", "prot",
+	"src_addr", "src_port", "dst_addr", "dst_port",
+	"tcp_state",
+}
 
 func (l *Loki) TargetLoki(options *slog.HandlerOptions) (slog.Handler, error) {
 	url, err := url.Parse(l.Address)
@@ -66,7 +73,7 @@ func (l *Loki) TargetLoki(options *slog.HandlerOptions) (slog.Handler, error) {
 		Client:                    client,
 		Level:                     options.Level,
 		HandleRecordsWithMetadata: true,
-		Converter:                 slogloki.RemoveAttrsConverter,
+		Converter:                 attrsToMetadata,
 	}
 	return o.NewLokiHandler(), nil
 }
@@ -123,4 +130,17 @@ func (l *Loki) createLogger() kitlog.Logger {
 	klogger = kitlog.With(klogger, "time", kitlog.DefaultTimestamp, "sink", "loki")
 
 	return klogger
+}
+
+func attrsToMetadata(addSource bool, replaceAttr func(groups []string, a slog.Attr) slog.Attr, loggerAttr []slog.Attr, groups []string, record *slog.Record) model.LabelSet {
+	attrs := slogcommon.AppendRecordAttrsToAttrs(loggerAttr, groups, record)
+
+	newRecord := slog.NewRecord(record.Time, record.Level, record.Message, record.PC)
+	for _, attr := range attrs {
+		if slices.Contains(labelAttrs, attr.Key) {
+			newRecord.AddAttrs(attr)
+		}
+	}
+
+	return slogloki.DefaultConverter(addSource, replaceAttr, loggerAttr, groups, &newRecord)
 }

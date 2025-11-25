@@ -254,6 +254,9 @@ GEO location fields for source and destination if applicable with prefixes
 <details>
 <summary>Example log entry recorded by sink `loki`</summary>
 
+Loki allows maximum 15 labels per log entry. Therefore, location fields are
+attached as structured metadata to each log line.
+
 ```json
 {
   "stream": {
