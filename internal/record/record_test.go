@@ -60,7 +60,8 @@ func recordLogsBasicData(t *testing.T) {
 	assert.NoError(t, err)
 
 	wanted := []string{"level", "time",
-		"type", "flow", "prot", "src", "dst", "sport", "dport"}
+		"type", "flow", "prot",
+		"src_addr", "dst_addr", "src_port", "dst_port"}
 	got := slices.Sorted(maps.Keys(result))
 	assert.ElementsMatch(t, wanted, got, "record basic keys")
 
@@ -95,9 +96,10 @@ func recordLogsWithGeoIPData(t *testing.T) {
 	assert.NoError(t, err)
 
 	wanted := []string{"level", "time",
-		"type", "flow", "prot", "src", "dst", "sport", "dport",
-		"dcountry", "dcity", "dlat", "dlon",
-		"scountry", "scity", "slat", "slon"}
+		"type", "flow", "prot",
+		"src_addr", "dst_addr", "src_port", "dst_port",
+		"dst_country", "dst_city", "dst_lat", "dst_lon",
+		"src_country", "src_city", "src_lat", "src_lon"}
 	got := slices.Sorted(maps.Keys(result))
 	assert.ElementsMatch(t, wanted, got, "record keys with geoip")
 

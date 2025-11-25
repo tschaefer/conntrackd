@@ -24,15 +24,15 @@ func Record(event conntrack.Event, geo *geoip.GeoIP, logger *slog.Logger) {
 		slog.String("type", eType),
 		slog.Uint64("flow", uint64(event.Flow.ID)),
 		slog.String("prot", prot),
-		slog.String("src", event.Flow.TupleOrig.IP.SourceAddress.String()),
-		slog.String("dst", event.Flow.TupleOrig.IP.DestinationAddress.String()),
-		slog.Uint64("sport", uint64(event.Flow.TupleOrig.Proto.SourcePort)),
-		slog.Uint64("dport", uint64(event.Flow.TupleOrig.Proto.DestinationPort)),
+		slog.String("src_addr", event.Flow.TupleOrig.IP.SourceAddress.String()),
+		slog.String("dst_addr", event.Flow.TupleOrig.IP.DestinationAddress.String()),
+		slog.Uint64("src_port", uint64(event.Flow.TupleOrig.Proto.SourcePort)),
+		slog.Uint64("dst_port", uint64(event.Flow.TupleOrig.Proto.DestinationPort)),
 	}
 
 	state, ok := getTCPState(event)
 	if ok {
-		established = append(established, slog.String("state", state))
+		established = append(established, slog.String("tcp_state", state))
 	}
 
 	location := getLocation(event, geo)
@@ -107,8 +107,8 @@ func getLocation(event conntrack.Event, geo *geoip.GeoIP) []any {
 
 	var location []any
 	for dir, addr := range map[string]netip.Addr{
-		"s": netip.MustParseAddr("78.47.60.169"), // event.Flow.TupleOrig.IP.SourceAddress,
-		"d": event.Flow.TupleOrig.IP.DestinationAddress,
+		"src_": event.Flow.TupleOrig.IP.SourceAddress,
+		"dst_": event.Flow.TupleOrig.IP.DestinationAddress,
 	} {
 		if loc := geo.Location(addr); loc != nil {
 			data := []any{

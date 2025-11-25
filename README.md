@@ -162,15 +162,16 @@ includes:
 
 - type (connection event type)
 - flow (connection flow identifier)
-- src, dst (IP addresses)
-- sport, dport (port numbers)
+- src_addr, dst_addr (IP addresses)
+- src_port, dst_port (port numbers)
 - prot (transport protocol)
 
 Additionally TCP field:
 
 - state (TCP connection state)
 
-GEO location fields for source and destination if applicable:
+GEO location fields for source and destination if applicable with prefixes
+`src_` and `dst_`:
 
 - city (city name)
 - country (country name)
@@ -183,13 +184,13 @@ GEO location fields for source and destination if applicable:
 ```json
 {
   "event": {
-    "dport": 443,
-    "dst": "2600:1901:0:b3ea::",
+    "dst_port": 443,
+    "dst_addr": "2600:1901:0:b3ea::",
     "flow": 221193769,
     "prot": "TCP",
-    "sport": 41348,
-    "src": "2003:cf:1716:7b64:da80:83ff:fecd:da51",
-    "state": "LAST_ACK",
+    "src_port": 41348,
+    "src_addr": "2003:cf:1716:7b64:da80:83ff:fecd:da51",
+    "tcp_state": "LAST_ACK",
     "type": "UPDATE"
   },
   "level": "INFO",
@@ -208,7 +209,7 @@ GEO location fields for source and destination if applicable:
 {
 	"__CURSOR" : "s=b3c7821dbfce47a59b06797aea9028ca;i=6772d3;b=100da27bd...",
 	"_CAP_EFFECTIVE" : "1ffffffffff",
-	"EVENT_SPORT" : "39790",
+	"EVENT_SRC_PORT" : "39790",
 	"_SOURCE_REALTIME_TIMESTAMP" : "1763200187611509",
 	"_SYSTEMD_CGROUP" : "/user.slice/user-1000.slice/session-1.scope",
 	"_SYSTEMD_OWNER_UID" : "1000",
@@ -218,13 +219,13 @@ GEO location fields for source and destination if applicable:
 	"_GID" : "0",
 	"PRIORITY" : "6",
 	"_SYSTEMD_UNIT" : "session-1.scope",
-	"EVENT_DPORT" : "443",
+	"EVENT_DST_PORT" : "443",
 	"SLOG_LOGGER" : "tschaefer/slog-journal:v1.0.0",
 	"_TRANSPORT" : "journal",
-	"EVENT_SRC" : "2003:cf:1716:7b64:da80:83ff:fecd:da51",
+	"EVENT_SRC_ADDR" : "2003:cf:1716:7b64:da80:83ff:fecd:da51",
 	"_COMM" : "conntrackd",
 	"__MONOTONIC_TIMESTAMP" : "352829248481",
-	"EVENT_STATE" : "LAST_ACK",
+	"EVENT_TCP_STATE" : "LAST_ACK",
 	"_MACHINE_ID" : "75b649379b874beea04d95463e59c3a1",
 	"_SYSTEMD_SLICE" : "user-1000.slice",
 	"_SYSTEMD_USER_SLICE" : "-.slice",
@@ -240,7 +241,7 @@ GEO location fields for source and destination if applicable:
 	"_BOOT_ID" : "100da27bd8b94096b5c80cdac34d6063",
 	"_RUNTIME_SCOPE" : "system",
 	"_SELINUX_CONTEXT" : "unconfined\n",
-	"EVENT_DST" : "2600:1901:0:b3ea::",
+	"EVENT_DST_ADDR" : "2600:1901:0:b3ea::",
 	"_AUDIT_LOGINUID" : "1000",
 	"_UID" : "0",
 	"EVENT_TYPE" : "UPDATE",
@@ -256,35 +257,34 @@ GEO location fields for source and destination if applicable:
 ```json
 {
   "stream": {
-    "dcity": "Falkenstein",
-    "dcountry": "Germany",
     "detected_level": "INFO",
-    "dlat": "50.4777",
-    "dlon": "12.3649",
-    "dport": "443",
-    "dst": "2a01:4f8:160:5372::2",
-    "flow": "122448605",
+    "dst_addr": "2a01:4f8:160:5372::2",
+    "dst_city": "Falkenstein",
+    "dst_country": "Germany",
+    "dst_lat": "50.4777",
+    "dst_lon": "12.3649",
+    "dst_port": "443",
+    "flow": "3888076403",
     "host": "core.example",
     "level": "INFO",
     "prot": "TCP",
-    "scity": "Falkenstein",
-    "scountry": "Germany",
     "service_name": "conntrackd",
-    "slat": "50.4777",
-    "slon": "12.3649",
-    "sport": "54756",
-    "src": "2003:cf:1716:7b64:da80:83ff:fecd:da51",
-    "state": "SYN_SENT",
+    "src_addr": "2003:cf:1716:7b64:da80:83ff:fecd:da51",
+    "src_city": "Falkenstein",
+    "src_country": "Germany",
+    "src_lat": "50.4777",
+    "src_lon": "12.3649",
+    "src_port": "40074",
+    "tcp_state": "SYN_SENT",
     "type": "NEW"
   },
   "values": [
     [
-      "1764068411229712376",
-      "NEW TCP connection from [2003:cf:1716:7b64:da80:83ff:fecd:da51]:54756..."
+      "1764069680491773606",
+      "NEW TCP connection from [2003:cf:1716:7b64:da80:83ff:fecd:da51]:4007..."
     ]
   ]
 }
-
 ```
 </details>
 
@@ -293,25 +293,25 @@ GEO location fields for source and destination if applicable:
 
 ```json
 {
-  "time": "2025-11-25T11:58:21.99256561+01:00",
+  "time": "2025-11-25T12:35:11.082791653+01:00",
   "level": "INFO",
   "msg": "NEW TCP connection from [2003:cf:1716:7b64:da80:83ff:fecd:da51]:4...",
   "type": "NEW",
-  "flow": 901634022,
+  "flow": 4000057915,
   "prot": "TCP",
-  "src": "2003:cf:1716:7b64:da80:83ff:fecd:da51",
-  "dst": "2a01:4f8:160:5372::2",
-  "sport": 44646,
-  "dport": 443,
-  "state": "SYN_SENT",
-  "scity": "Falkenstein",
-  "scountry": "Germany",
-  "slat": 50.4777,
-  "slon": 12.3649,
-  "dcity": "Falkenstein",
-  "dcountry": "Germany",
-  "dlat": 50.4777,
-  "dlon": 12.3649
+  "src_addr": "2003:cf:1716:7b64:da80:83ff:fecd:da51",
+  "dst_addr": "2a01:4f8:160:5372::2",
+  "src_port": 41756,
+  "dst_port": 443,
+  "tcp_state": "SYN_SENT",
+  "src_city": "Garmisch-Partenkirchen",
+  "src_country": "Germany",
+  "src_lat": 47.4906,
+  "src_lon": 11.1026,
+  "dst_city": "Falkenstein",
+  "dst_country": "Germany",
+  "dst_lat": 50.4777,
+  "dst_lon": 12.3649
 }
 ```
 </details>
