@@ -73,7 +73,7 @@ func recordLogsWithGeoIPData(t *testing.T) {
 	flow := conntrack.NewFlow(
 		syscall.IPPROTO_TCP,
 		conntrack.StatusAssured,
-		netip.MustParseAddr("10.19.80.100"), netip.MustParseAddr("78.47.60.169"),
+		netip.MustParseAddr("78.47.60.169"), netip.MustParseAddr("78.47.60.169"),
 		4711, 443,
 		60, 0,
 	)
@@ -96,9 +96,21 @@ func recordLogsWithGeoIPData(t *testing.T) {
 
 	wanted := []string{"level", "time",
 		"type", "flow", "prot", "src", "dst", "sport", "dport",
-		"city", "country", "lat", "lon"}
+		"location"}
 	got := slices.Sorted(maps.Keys(result))
 	assert.ElementsMatch(t, wanted, got, "record keys with geoip")
+
+	location := result["location"].(map[string]any)
+	wanted = []string{"src", "dst"}
+	got = slices.Sorted(maps.Keys(location))
+	assert.ElementsMatch(t, wanted, got, "location keys")
+
+	for _, key := range []string{"src", "dst"} {
+		loc := location[key].(map[string]any)
+		wanted = []string{"city", "country", "lat", "lon"}
+		got = slices.Sorted(maps.Keys(loc))
+		assert.ElementsMatch(t, wanted, got, "location.%s keys", key)
+	}
 
 	log.Reset()
 }
