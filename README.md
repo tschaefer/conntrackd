@@ -162,15 +162,16 @@ includes:
 
 - type (connection event type)
 - flow (connection flow identifier)
-- src, dst (IP addresses)
-- sport, dport (port numbers)
+- src_addr, dst_addr (IP addresses)
+- src_port, dst_port (port numbers)
 - prot (transport protocol)
 
 Additionally TCP field:
 
 - state (TCP connection state)
 
-GEO location fields:
+GEO location fields for source and destination if applicable with prefixes
+`src_` and `dst_`:
 
 - city (city name)
 - country (country name)
@@ -183,19 +184,19 @@ GEO location fields:
 ```json
 {
   "event": {
-    "dport": 443,
-    "dst": "2600:1901:0:b3ea::",
+    "dst_port": 443,
+    "dst_addr": "2600:1901:0:b3ea::",
     "flow": 221193769,
     "prot": "TCP",
-    "sport": 41348,
-    "src": "2003:cf:1716:7b64:da80:83ff:fecd:da51",
-    "state": "LAST_ACK",
+    "src_port": 41348,
+    "src_addr": "2003:cf:1716:7b64:da80:83ff:fecd:da51",
+    "tcp_state": "LAST_ACK",
     "type": "UPDATE"
   },
   "level": "INFO",
   "logger.name": "samber/slog-syslog",
   "logger.version": "v2.5.2",
-  "message": "UPDATE TCP connection from 2003:cf:1716:7b64:da80:83ff:fecd...",
+  "message": "UPDATE TCP connection from [2003:cf:1716:7b64:da80:83ff:fecd...",
   "timestamp": "2025-11-15T09:55:25.647544937Z"
 }
 ```
@@ -208,7 +209,7 @@ GEO location fields:
 {
 	"__CURSOR" : "s=b3c7821dbfce47a59b06797aea9028ca;i=6772d3;b=100da27bd...",
 	"_CAP_EFFECTIVE" : "1ffffffffff",
-	"EVENT_SPORT" : "39790",
+	"EVENT_SRC_PORT" : "39790",
 	"_SOURCE_REALTIME_TIMESTAMP" : "1763200187611509",
 	"_SYSTEMD_CGROUP" : "/user.slice/user-1000.slice/session-1.scope",
 	"_SYSTEMD_OWNER_UID" : "1000",
@@ -218,13 +219,13 @@ GEO location fields:
 	"_GID" : "0",
 	"PRIORITY" : "6",
 	"_SYSTEMD_UNIT" : "session-1.scope",
-	"EVENT_DPORT" : "443",
+	"EVENT_DST_PORT" : "443",
 	"SLOG_LOGGER" : "tschaefer/slog-journal:v1.0.0",
 	"_TRANSPORT" : "journal",
-	"EVENT_SRC" : "2003:cf:1716:7b64:da80:83ff:fecd:da51",
+	"EVENT_SRC_ADDR" : "2003:cf:1716:7b64:da80:83ff:fecd:da51",
 	"_COMM" : "conntrackd",
 	"__MONOTONIC_TIMESTAMP" : "352829248481",
-	"EVENT_STATE" : "LAST_ACK",
+	"EVENT_TCP_STATE" : "LAST_ACK",
 	"_MACHINE_ID" : "75b649379b874beea04d95463e59c3a1",
 	"_SYSTEMD_SLICE" : "user-1000.slice",
 	"_SYSTEMD_USER_SLICE" : "-.slice",
@@ -240,11 +241,11 @@ GEO location fields:
 	"_BOOT_ID" : "100da27bd8b94096b5c80cdac34d6063",
 	"_RUNTIME_SCOPE" : "system",
 	"_SELINUX_CONTEXT" : "unconfined\n",
-	"EVENT_DST" : "2600:1901:0:b3ea::",
+	"EVENT_DST_ADDR" : "2600:1901:0:b3ea::",
 	"_AUDIT_LOGINUID" : "1000",
 	"_UID" : "0",
 	"EVENT_TYPE" : "UPDATE",
-	"MESSAGE" : "UPDATE TCP connection from 2003:cf:1716:7b64:da80:83ff:fe..."
+	"MESSAGE" : "UPDATE TCP connection from [2003:cf:1716:7b64:da80:83ff:fe..."
 }
 
 ```
@@ -253,30 +254,45 @@ GEO location fields:
 <details>
 <summary>Example log entry recorded by sink `loki`</summary>
 
+Loki allows maximum 15 labels per log entry. Therefore, location fields are
+attached as structured metadata to each log line.
+
 ```json
 {
   "stream": {
-    "city": "Nuremberg",
-    "country": "Germany",
     "detected_level": "INFO",
-    "dport": "443",
-    "dst": "2a01:4f8:1c1c:b751::1",
-    "flow": "574674164",
-    "host": "core.example.com",
-    "lat": "49.4527",
+    "dst_addr": "2a01:4f8:160:5372::2",
+    "dst_addr_extracted": "2a01:4f8:160:5372::2",
+    "dst_city": "Falkenstein",
+    "dst_country": "Germany",
+    "dst_lat": "50.4777",
+    "dst_lon": "12.3649",
+    "dst_port": "443",
+    "dst_port_extracted": "443",
+    "flow": "4198226788",
+    "flow_extracted": "4198226788",
+    "host": "bullseye.u.coresec.zone",
     "level": "INFO",
-    "lon": "11.0783",
     "prot": "TCP",
+    "prot_extracted": "TCP",
     "service_name": "conntrackd",
-    "sport": "44950",
-    "src": "2003:cf:1716:7b64:d6e9:8aff:fe4f:7a59",
-    "state": "TIME_WAIT",
-    "type": "UPDATE"
+    "src_addr": "2003:cf:1716:7b64:da80:83ff:fecd:da51",
+    "src_addr_extracted": "2003:cf:1716:7b64:da80:83ff:fecd:da51",
+    "src_city": "Garmisch-Partenkirchen",
+    "src_country": "Germany",
+    "src_lat": "47.4906",
+    "src_lon": "11.1026",
+    "src_port": "56110",
+    "src_port_extracted": "56110",
+    "tcp_state": "SYN_SENT",
+    "tcp_state_extracted": "SYN_SENT",
+    "type": "NEW",
+    "type_extracted": "NEW"
   },
   "values": [
     [
-      "1763537351540294198",
-      "UPDATE TCP connection from 2003:cf:1716:7b64:d6e9:8aff:fe4f:7a59/44..."
+      "1764163739570953291",
+      "NEW TCP connection from [2003:cf:1716:7b64:da80:83ff:fecd:da51]:56110..."
     ]
   ]
 }
@@ -288,17 +304,25 @@ GEO location fields:
 
 ```json
 {
-  "time": "2025-11-22T11:34:43.181432081+01:00",
+  "time": "2025-11-25T12:35:11.082791653+01:00",
   "level": "INFO",
-  "msg": "NEW TCP connection from 2003:cf:1716:7b64:da80:83ff:fecd:da51/4...",
+  "msg": "NEW TCP connection from [2003:cf:1716:7b64:da80:83ff:fecd:da51]:4...",
   "type": "NEW",
-  "flow": 2899284024,
+  "flow": 4000057915,
   "prot": "TCP",
-  "src": "2003:cf:1716:7b64:da80:83ff:fecd:da51",
-  "dst": "2a01:4f8:160:5372::2",
-  "sport": 41220,
-  "dport": 80,
-  "state": "SYN_SENT"
+  "src_addr": "2003:cf:1716:7b64:da80:83ff:fecd:da51",
+  "dst_addr": "2a01:4f8:160:5372::2",
+  "src_port": 41756,
+  "dst_port": 443,
+  "tcp_state": "SYN_SENT",
+  "src_city": "Garmisch-Partenkirchen",
+  "src_country": "Germany",
+  "src_lat": 47.4906,
+  "src_lon": 11.1026,
+  "dst_city": "Falkenstein",
+  "dst_country": "Germany",
+  "dst_lat": 50.4777,
+  "dst_lon": 12.3649
 }
 ```
 </details>

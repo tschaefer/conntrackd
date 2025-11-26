@@ -60,7 +60,8 @@ func recordLogsBasicData(t *testing.T) {
 	assert.NoError(t, err)
 
 	wanted := []string{"level", "time",
-		"type", "flow", "prot", "src", "dst", "sport", "dport"}
+		"type", "flow", "prot",
+		"src_addr", "dst_addr", "src_port", "dst_port"}
 	got := slices.Sorted(maps.Keys(result))
 	assert.ElementsMatch(t, wanted, got, "record basic keys")
 
@@ -73,7 +74,7 @@ func recordLogsWithGeoIPData(t *testing.T) {
 	flow := conntrack.NewFlow(
 		syscall.IPPROTO_TCP,
 		conntrack.StatusAssured,
-		netip.MustParseAddr("10.19.80.100"), netip.MustParseAddr("78.47.60.169"),
+		netip.MustParseAddr("78.47.60.169"), netip.MustParseAddr("78.47.60.169"),
 		4711, 443,
 		60, 0,
 	)
@@ -95,8 +96,10 @@ func recordLogsWithGeoIPData(t *testing.T) {
 	assert.NoError(t, err)
 
 	wanted := []string{"level", "time",
-		"type", "flow", "prot", "src", "dst", "sport", "dport",
-		"city", "country", "lat", "lon"}
+		"type", "flow", "prot",
+		"src_addr", "dst_addr", "src_port", "dst_port",
+		"dst_country", "dst_city", "dst_lat", "dst_lon",
+		"src_country", "src_city", "src_lat", "src_lon"}
 	got := slices.Sorted(maps.Keys(result))
 	assert.ElementsMatch(t, wanted, got, "record keys with geoip")
 
