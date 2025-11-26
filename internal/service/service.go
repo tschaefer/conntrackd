@@ -48,19 +48,20 @@ func (s *Service) Run(ctx context.Context) bool {
 	if err != nil {
 		return false
 	}
-	defer func() {
-		_ = con.Close()
-	}()
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
 	evCh, errCh, err := s.startEventListener(con)
 	if err != nil {
 		_ = con.Close()
+		cancel()
 		return false
 	}
 
 	g := s.startEventProcessor(ctx, evCh)
 
-	return s.handleShutdown(ctx, con, g, errCh)
+	return s.handleShutdown(ctx, cancel, con, g, errCh)
 }
 
 func (s *Service) setupConntrack() (*conntrack.Conn, error) {
@@ -126,10 +127,11 @@ func (s *Service) processEvent(event conntrack.Event) {
 	}
 }
 
-func (s *Service) handleShutdown(ctx context.Context, con *conntrack.Conn, g *errgroup.Group, errCh chan error) bool {
+func (s *Service) handleShutdown(ctx context.Context, cancel context.CancelFunc, con *conntrack.Conn, g *errgroup.Group, errCh chan error) bool {
 	select {
 	case err := <-errCh:
 		if err != nil {
+			cancel()
 			slog.Error("Conntrack listener error.", "error", err)
 			_ = con.Close()
 			if gErr := g.Wait(); gErr != nil {
@@ -137,6 +139,7 @@ func (s *Service) handleShutdown(ctx context.Context, con *conntrack.Conn, g *er
 			}
 			return false
 		}
+		cancel()
 		_ = con.Close()
 		if gErr := g.Wait(); gErr != nil {
 			slog.Error("Event loop returned error during shutdown.", "error", gErr)
@@ -144,6 +147,7 @@ func (s *Service) handleShutdown(ctx context.Context, con *conntrack.Conn, g *er
 		return true
 	case <-ctx.Done():
 		slog.Info("Shutting down conntrack listener.")
+		cancel()
 		_ = con.Close()
 		if gErr := g.Wait(); gErr != nil {
 			slog.Error("Event loop returned error during shutdown.", "error", gErr)
