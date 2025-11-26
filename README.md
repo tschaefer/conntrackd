@@ -262,29 +262,37 @@ attached as structured metadata to each log line.
   "stream": {
     "detected_level": "INFO",
     "dst_addr": "2a01:4f8:160:5372::2",
+    "dst_addr_extracted": "2a01:4f8:160:5372::2",
     "dst_city": "Falkenstein",
     "dst_country": "Germany",
     "dst_lat": "50.4777",
     "dst_lon": "12.3649",
     "dst_port": "443",
-    "flow": "3888076403",
-    "host": "core.example",
+    "dst_port_extracted": "443",
+    "flow": "4198226788",
+    "flow_extracted": "4198226788",
+    "host": "bullseye.u.coresec.zone",
     "level": "INFO",
     "prot": "TCP",
+    "prot_extracted": "TCP",
     "service_name": "conntrackd",
     "src_addr": "2003:cf:1716:7b64:da80:83ff:fecd:da51",
-    "src_city": "Falkenstein",
+    "src_addr_extracted": "2003:cf:1716:7b64:da80:83ff:fecd:da51",
+    "src_city": "Garmisch-Partenkirchen",
     "src_country": "Germany",
-    "src_lat": "50.4777",
-    "src_lon": "12.3649",
-    "src_port": "40074",
+    "src_lat": "47.4906",
+    "src_lon": "11.1026",
+    "src_port": "56110",
+    "src_port_extracted": "56110",
     "tcp_state": "SYN_SENT",
-    "type": "NEW"
+    "tcp_state_extracted": "SYN_SENT",
+    "type": "NEW",
+    "type_extracted": "NEW"
   },
   "values": [
     [
-      "1764069680491773606",
-      "NEW TCP connection from [2003:cf:1716:7b64:da80:83ff:fecd:da51]:4007..."
+      "1764163739570953291",
+      "NEW TCP connection from [2003:cf:1716:7b64:da80:83ff:fecd:da51]:56110..."
     ]
   ]
 }
