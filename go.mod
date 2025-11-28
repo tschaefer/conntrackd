@@ -6,8 +6,9 @@ require (
 	github.com/go-kit/log v0.2.1
 	github.com/grafana/loki-client-go v0.0.0-20251015150631-c42bbddc310a
 	github.com/mdlayher/netlink v1.8.0
-	github.com/oschwald/geoip2-golang/v2 v2.0.0
+	github.com/oschwald/geoip2-golang/v2 v2.0.1
 	github.com/prometheus/common v0.67.4
+	github.com/samber/slog-common v0.19.0
 	github.com/samber/slog-loki/v3 v3.6.0
 	github.com/samber/slog-multi v1.6.0
 	github.com/samber/slog-syslog/v2 v2.5.2
@@ -48,7 +49,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f // indirect
-	github.com/oschwald/maxminddb-golang/v2 v2.0.0 // indirect
+	github.com/oschwald/maxminddb-golang/v2 v2.1.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
@@ -58,7 +59,6 @@ require (
 	github.com/prometheus/prometheus v0.35.0 // indirect
 	github.com/sagikazarmark/locafero v0.11.0 // indirect
 	github.com/samber/lo v1.52.0 // indirect
-	github.com/samber/slog-common v0.19.0 // indirect
 	github.com/sourcegraph/conc v0.3.1-0.20240121214520-5f936abd7ae8 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
