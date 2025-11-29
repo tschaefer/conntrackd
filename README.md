@@ -154,6 +154,8 @@ Configuration values are applied in the following order
 | `--sink.loki.address`   | Loki address                                      | http://localhost:3100    |
 | `--sink.loki.labels`    | Loki labels (comma-separated key=value pairs)     |                          |
 | `--sink.stream.writer`  | Stream writer (stdout, stderr, discard)           | stdout                   |
+| `--profiler.enable`     | Enable continous profiling                        |                          |
+| `--profiler.address`    | Pyroscope server address                          | http://localhost:4040    |
 
 ## Logging format
 

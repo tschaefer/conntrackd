@@ -5,6 +5,7 @@ go 1.25.3
 require (
 	github.com/go-kit/log v0.2.1
 	github.com/grafana/loki-client-go v0.0.0-20251015150631-c42bbddc310a
+	github.com/grafana/pyroscope-go v1.2.7
 	github.com/mdlayher/netlink v1.8.0
 	github.com/oschwald/geoip2-golang/v2 v2.0.1
 	github.com/prometheus/common v0.67.4
@@ -38,10 +39,12 @@ require (
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/grafana/loki/pkg/push v0.0.0-20240912152814-63e84b476a9a // indirect
+	github.com/grafana/pyroscope-go/godeltaprof v0.1.9 // indirect
 	github.com/grafana/regexp v0.0.0-20220304095617-2e8d9baf4ac2 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/mdlayher/socket v0.5.1 // indirect
 	github.com/mitchellh/mapstructure v1.4.3 // indirect

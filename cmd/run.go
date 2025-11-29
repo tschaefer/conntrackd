@@ -18,6 +18,7 @@ import (
 	"github.com/tschaefer/conntrackd/internal/filter"
 	"github.com/tschaefer/conntrackd/internal/geoip"
 	"github.com/tschaefer/conntrackd/internal/logger"
+	"github.com/tschaefer/conntrackd/internal/profiler"
 	"github.com/tschaefer/conntrackd/internal/service"
 	"github.com/tschaefer/conntrackd/internal/sink"
 )
@@ -33,6 +34,17 @@ var runCmd = &cobra.Command{
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		if viper.GetBool("profiler.enable") {
+			profiler := profiler.NewProfiler(viper.GetString("profiler.address"))
+			err := profiler.Start()
+			if err != nil {
+				cobra.CheckErr(fmt.Sprintf("Failed to start profiler: %v", err))
+			}
+			defer func() {
+				_ = profiler.Stop()
+			}()
+		}
+
 		l, err := logger.NewLogger(viper.GetString("log.level"))
 		if err != nil {
 			cobra.CheckErr(fmt.Sprintf("Failed to create logger: %v", err))
@@ -141,5 +153,11 @@ func init() {
 	_ = runCmd.RegisterFlagCompletionFunc("sink.stream.writer", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return sink.StreamWriters, cobra.ShellCompDirectiveNoFileComp
 	})
+
+	runCmd.Flags().Bool("profiler.enable", false, "Enable profiler")
+	_ = viper.BindPFlag("profiler.enable", runCmd.Flags().Lookup("profiler.enable"))
+
+	runCmd.Flags().String("profiler.address", "http://localhost:4040", "Profiler server address")
+	_ = viper.BindPFlag("profiler.address", runCmd.Flags().Lookup("profiler.address"))
 
 }
