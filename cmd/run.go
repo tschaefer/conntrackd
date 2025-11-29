@@ -22,13 +22,6 @@ import (
 	"github.com/tschaefer/conntrackd/internal/sink"
 )
 
-type Options struct {
-	logLevel      string
-	geoipDatabase string
-	filterRules   []string
-	sink          sink.Config
-}
-
 var cfgFile string
 
 var runCmd = &cobra.Command{
@@ -40,16 +33,15 @@ var runCmd = &cobra.Command{
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		options := readConfig()
-
-		l, err := logger.NewLogger(options.logLevel)
+		l, err := logger.NewLogger(viper.GetString("log.level"))
 		if err != nil {
 			cobra.CheckErr(fmt.Sprintf("Failed to create logger: %v", err))
 		}
 
 		var g *geoip.GeoIP
-		if options.geoipDatabase != "" {
-			g, err = geoip.NewGeoIP(options.geoipDatabase)
+		geoipDatabase := viper.GetString("geoip.database")
+		if geoipDatabase != "" {
+			g, err = geoip.NewGeoIP(geoipDatabase)
 			if err != nil {
 				cobra.CheckErr(fmt.Sprintf("Failed to open geoip database: %v", err))
 			}
@@ -59,14 +51,15 @@ var runCmd = &cobra.Command{
 		}
 
 		var f *filter.Filter
-		if len(options.filterRules) > 0 {
-			f, err = filter.NewFilter(options.filterRules)
+		filterRules := viper.GetStringSlice("filter")
+		if len(filterRules) > 0 {
+			f, err = filter.NewFilter(filterRules)
 			if err != nil {
 				cobra.CheckErr(fmt.Sprintf("failed to compile filter rules: %v", err))
 			}
 		}
 
-		s, err := sink.NewSink(&options.sink)
+		s, err := sink.NewSink(getSinkConfig())
 		if err != nil {
 			cobra.CheckErr(fmt.Sprintf("failed to initialize sink: %v", err))
 		}
@@ -83,28 +76,23 @@ var runCmd = &cobra.Command{
 	},
 }
 
-func readConfig() *Options {
-	return &Options{
-		logLevel:      viper.GetString("log.level"),
-		geoipDatabase: viper.GetString("geoip.database"),
-		filterRules:   viper.GetStringSlice("filter"),
-		sink: sink.Config{
-			Journal: sink.Journal{
-				Enable: viper.GetBool("sink.journal.enable"),
-			},
-			Syslog: sink.Syslog{
-				Enable:  viper.GetBool("sink.syslog.enable"),
-				Address: viper.GetString("sink.syslog.address"),
-			},
-			Loki: sink.Loki{
-				Enable:  viper.GetBool("sink.loki.enable"),
-				Address: viper.GetString("sink.loki.address"),
-				Labels:  viper.GetStringSlice("sink.loki.labels"),
-			},
-			Stream: sink.Stream{
-				Enable: viper.GetBool("sink.stream.enable"),
-				Writer: viper.GetString("sink.stream.writer"),
-			},
+func getSinkConfig() *sink.Config {
+	return &sink.Config{
+		Journal: sink.Journal{
+			Enable: viper.GetBool("sink.journal.enable"),
+		},
+		Syslog: sink.Syslog{
+			Enable:  viper.GetBool("sink.syslog.enable"),
+			Address: viper.GetString("sink.syslog.address"),
+		},
+		Loki: sink.Loki{
+			Enable:  viper.GetBool("sink.loki.enable"),
+			Address: viper.GetString("sink.loki.address"),
+			Labels:  viper.GetStringSlice("sink.loki.labels"),
+		},
+		Stream: sink.Stream{
+			Enable: viper.GetBool("sink.stream.enable"),
+			Writer: viper.GetString("sink.stream.writer"),
 		},
 	}
 }
