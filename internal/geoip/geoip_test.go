@@ -15,13 +15,12 @@ import (
 
 var geoDatabasePath string
 
-func newReturnsError_InvalidDatabase(t *testing.T) {
+func newReturnsErrorIfDatabaseIsInvalid(t *testing.T) {
 	_, err := NewGeoIP("../../README.md")
 	assert.EqualError(t, err, "error opening database: invalid MaxMind DB file")
 }
 
-func newReturnsInstance_ValidDatabase(t *testing.T) {
-	t.Logf("Using GeoIP database at %s", geoDatabasePath)
+func newReturnsInstanceIfDatabaseIsValid(t *testing.T) {
 	geoIP, err := NewGeoIP(geoDatabasePath)
 	assert.NoError(t, err)
 	assert.NotNil(t, geoIP)
@@ -30,7 +29,7 @@ func newReturnsInstance_ValidDatabase(t *testing.T) {
 	assert.IsType(t, geoIP.Reader, &geoip2.Reader{})
 }
 
-func locationReturnsNil_UnresolvedIP(t *testing.T) {
+func locationReturnsNilIfAddressIsUnresolved(t *testing.T) {
 	geo, err := NewGeoIP(geoDatabasePath)
 	assert.NoError(t, err)
 	assert.NotNil(t, geo)
@@ -47,7 +46,7 @@ func locationReturnsNil_UnresolvedIP(t *testing.T) {
 	}
 }
 
-func locationReturnsLocation_ResolvedIP(t *testing.T) {
+func locationReturnsLocationIfAddressIsResolved(t *testing.T) {
 	geo, err := NewGeoIP(geoDatabasePath)
 	assert.NoError(t, err)
 	assert.NotNil(t, geo)
@@ -68,8 +67,8 @@ func TestGeoIP(t *testing.T) {
 		t.Skip("GeoIP database not found, skipping GeoIP tests")
 	}
 
-	t.Run("New returns error for invalid database", newReturnsError_InvalidDatabase)
-	t.Run("New returns instance for valid database", newReturnsInstance_ValidDatabase)
-	t.Run("Location returns nil for unresolved IPs", locationReturnsNil_UnresolvedIP)
-	t.Run("Location returns location for resolved IPs", locationReturnsLocation_ResolvedIP)
+	t.Run("geoip.NewGeoIP returns error if database is invalid", newReturnsErrorIfDatabaseIsInvalid)
+	t.Run("geoip.NewGeoIP returns instance if database is valid", newReturnsInstanceIfDatabaseIsValid)
+	t.Run("geoip.Location returns nil if IP is unresolved", locationReturnsNilIfAddressIsUnresolved)
+	t.Run("geoip.Location returns location if IP is resolved", locationReturnsLocationIfAddressIsResolved)
 }

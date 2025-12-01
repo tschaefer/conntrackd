@@ -5,7 +5,10 @@ Licensed under the MIT License, see LICENSE file in the project root for details
 package sink
 
 import (
+	"bytes"
+	"fmt"
 	"os"
+	"os/exec"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -27,7 +30,20 @@ func capture(f func()) string {
 	return string(buf[:n])
 }
 
-func newReturnsError_NoTargetsEnabled(t *testing.T) {
+func fork(testName string) (string, string, error) {
+	cmd := exec.Command(os.Args[0], fmt.Sprintf("-test.run=%v", testName))
+	cmd.Env = append(os.Environ(), "FORK=1")
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+
+	return stdout.String(), stderr.String(), err
+}
+
+func newReturnsErrorIfNoTargetsAreEnabled(t *testing.T) {
 	config := &Config{
 		Journal: Journal{Enable: false},
 		Syslog:  Syslog{Enable: false},
@@ -42,7 +58,7 @@ func newReturnsError_NoTargetsEnabled(t *testing.T) {
 	assert.EqualError(t, err, "no target sink available")
 }
 
-func newReturnsSink_TargetsEnabled(t *testing.T) {
+func newReturnsSinkIfTargetsEnabled(t *testing.T) {
 	config := &Config{
 		Journal: Journal{Enable: false},
 		Syslog:  Syslog{Enable: false},
@@ -56,11 +72,11 @@ func newReturnsSink_TargetsEnabled(t *testing.T) {
 	assert.IsType(t, &Sink{}, sink)
 }
 
-func newPrintsWarning_TargetInitFails(t *testing.T) {
+func newPrintsWarningIfTargetInitFails(t *testing.T) {
 	config := &Config{
 		Journal: Journal{Enable: false},
 		Syslog:  Syslog{Enable: false},
-		Loki:    Loki{Enable: true, Address: "http://invalid-address"},
+		Loki:    Loki{Enable: true, Address: "://invalid-address"},
 		Stream:  Stream{Enable: true, Writer: "discard"},
 	}
 	warning := capture(func() {
@@ -70,7 +86,27 @@ func newPrintsWarning_TargetInitFails(t *testing.T) {
 }
 
 func TestSink(t *testing.T) {
-	t.Run("NewSink returns error if no targets are enabled", newReturnsError_NoTargetsEnabled)
-	t.Run("NewSink returns sink if targets enabled", newReturnsSink_TargetsEnabled)
-	t.Run("NewSink prints warning if target init fails", newPrintsWarning_TargetInitFails)
+	t.Run("sink.NewSink returns error if no targets are enabled", newReturnsErrorIfNoTargetsAreEnabled)
+	t.Run("sink.NewSink returns sink if targets enabled", newReturnsSinkIfTargetsEnabled)
+	t.Run("sink.NewSink prints warning if target init fails", newPrintsWarningIfTargetInitFails)
+}
+
+func Test_NewExitsIfTargetInitFailsAndEnvExitOnWarningIsSet(t *testing.T) {
+	if os.Getenv("FORK") == "1" {
+		config := &Config{
+			Journal: Journal{Enable: false},
+			Syslog:  Syslog{Enable: false},
+			Loki:    Loki{Enable: true, Address: "://invalid-address"},
+			Stream:  Stream{Enable: false},
+		}
+
+		_ = os.Setenv("CONNTRACKD_SINK_EXIT_ON_WARNING", "1")
+		_, _ = NewSink(config)
+	}
+
+	stdout, stderr, err := fork("Test_NewExitsIfTargetInitFailsAndEnvExitOnWarningIsSet")
+
+	assert.Equal(t, "exit status 1", err.Error())
+	assert.Contains(t, "Warning: Failed to initialize sink \"loki\": parse \"://invalid-address\": missing protocol scheme\n", stderr)
+	assert.Contains(t, "", stdout)
 }

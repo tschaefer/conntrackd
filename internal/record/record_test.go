@@ -37,7 +37,7 @@ func setupLogger() *slog.Logger {
 	return slog.New(slog.NewJSONHandler(&log, loggerOptions))
 }
 
-func recordLogsBasicData(t *testing.T) {
+func recordLogsBasicDataIfNoLocationIsGiven(t *testing.T) {
 	logger := setupLogger()
 
 	flow := conntrack.NewFlow(
@@ -68,7 +68,7 @@ func recordLogsBasicData(t *testing.T) {
 	log.Reset()
 }
 
-func recordLogsWithGeoIPData(t *testing.T) {
+func recordLogsAllDataIfLocationIsGiven(t *testing.T) {
 	logger := setupLogger()
 
 	flow := conntrack.NewFlow(
@@ -116,6 +116,6 @@ func TestRecord(t *testing.T) {
 		t.Skip("GeoIP database not found, skipping GeoIP tests")
 	}
 
-	t.Run("Record logs basic data", recordLogsBasicData)
-	t.Run("Record logs with GeoIP data", recordLogsWithGeoIPData)
+	t.Run("record.Record logs basic data without location data", recordLogsBasicDataIfNoLocationIsGiven)
+	t.Run("record.Record logs all data with location data", recordLogsAllDataIfLocationIsGiven)
 }
