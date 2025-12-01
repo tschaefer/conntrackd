@@ -12,7 +12,7 @@ import (
 	slogjournal "github.com/tschaefer/slog-journal"
 )
 
-func targetJournal(t *testing.T) {
+func targetJournalReturnsHandler(t *testing.T) {
 	journal := &Journal{
 		Enable: true,
 	}
@@ -23,5 +23,5 @@ func targetJournal(t *testing.T) {
 }
 
 func TestSinkTargetJournal(t *testing.T) {
-	t.Run("TargetJournal returns valid handler", targetJournal)
+	t.Run("journal.TargetJournal returns handler", targetJournalReturnsHandler)
 }

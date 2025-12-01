@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func targetSyslog_AddressValid(t *testing.T) {
+func targetSyslogReturnsHandlerIfAddressIsValid(t *testing.T) {
 	syslog := &Syslog{
 		Enable:  true,
 		Address: "udp://localhost:514",
@@ -23,13 +23,11 @@ func targetSyslog_AddressValid(t *testing.T) {
 	assert.IsType(t, &slogsyslog.SyslogHandler{}, handler)
 }
 
-func targetSyslog_AddressInvalid(t *testing.T) {
-	type data struct {
+func targetSyslogReturnsErrorIfAddressIsInvalid(t *testing.T) {
+	cases := []struct {
 		address string
 		errMsg  string
-	}
-
-	datas := []data{
+	}{
 		{
 			address: "unix:///dev/notfound",
 			errMsg:  "dial unix /dev/notfound: connect: no such file or directory",
@@ -44,19 +42,19 @@ func targetSyslog_AddressInvalid(t *testing.T) {
 		},
 	}
 
-	for _, d := range datas {
+	for _, tc := range cases {
 		syslog := &Syslog{
 			Enable:  true,
-			Address: d.address,
+			Address: tc.address,
 		}
 		handler, err := syslog.TargetSyslog(&slog.HandlerOptions{})
 		assert.NotNil(t, err)
 		assert.Nil(t, handler)
-		assert.EqualError(t, err, d.errMsg)
+		assert.EqualError(t, err, tc.errMsg)
 	}
 }
 
 func TestSinkTargetSyslog(t *testing.T) {
-	t.Run("TargetSyslog returns valid writer if address valid", targetSyslog_AddressValid)
-	t.Run("TargetSyslog returns error if address invalid", targetSyslog_AddressInvalid)
+	t.Run("syslog.TargetSyslog returns handler if address is valid", targetSyslogReturnsHandlerIfAddressIsValid)
+	t.Run("syslog.TargetSyslog returns error if address is invalid", targetSyslogReturnsErrorIfAddressIsInvalid)
 }

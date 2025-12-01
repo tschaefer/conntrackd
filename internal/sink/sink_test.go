@@ -43,7 +43,7 @@ func fork(testName string) (string, string, error) {
 	return stdout.String(), stderr.String(), err
 }
 
-func newReturnsError_NoTargetsEnabled(t *testing.T) {
+func newReturnsErrorIfNoTargetsAreEnabled(t *testing.T) {
 	config := &Config{
 		Journal: Journal{Enable: false},
 		Syslog:  Syslog{Enable: false},
@@ -58,7 +58,7 @@ func newReturnsError_NoTargetsEnabled(t *testing.T) {
 	assert.EqualError(t, err, "no target sink available")
 }
 
-func newReturnsSink_TargetsEnabled(t *testing.T) {
+func newReturnsSinkIfTargetsEnabled(t *testing.T) {
 	config := &Config{
 		Journal: Journal{Enable: false},
 		Syslog:  Syslog{Enable: false},
@@ -72,7 +72,7 @@ func newReturnsSink_TargetsEnabled(t *testing.T) {
 	assert.IsType(t, &Sink{}, sink)
 }
 
-func newPrintsWarning_TargetInitFails(t *testing.T) {
+func newPrintsWarningIfTargetInitFails(t *testing.T) {
 	config := &Config{
 		Journal: Journal{Enable: false},
 		Syslog:  Syslog{Enable: false},
@@ -86,12 +86,12 @@ func newPrintsWarning_TargetInitFails(t *testing.T) {
 }
 
 func TestSink(t *testing.T) {
-	t.Run("NewSink returns error if no targets are enabled", newReturnsError_NoTargetsEnabled)
-	t.Run("NewSink returns sink if targets enabled", newReturnsSink_TargetsEnabled)
-	t.Run("NewSink prints warning if target init fails", newPrintsWarning_TargetInitFails)
+	t.Run("sink.NewSink returns error if no targets are enabled", newReturnsErrorIfNoTargetsAreEnabled)
+	t.Run("sink.NewSink returns sink if targets enabled", newReturnsSinkIfTargetsEnabled)
+	t.Run("sink.NewSink prints warning if target init fails", newPrintsWarningIfTargetInitFails)
 }
 
-func Test_NewExits_EnvVarSet(t *testing.T) {
+func Test_NewExitsIfTargetInitFailsAndEnvExitOnWarningIsSet(t *testing.T) {
 	if os.Getenv("FORK") == "1" {
 		config := &Config{
 			Journal: Journal{Enable: false},
@@ -104,7 +104,7 @@ func Test_NewExits_EnvVarSet(t *testing.T) {
 		_, _ = NewSink(config)
 	}
 
-	stdout, stderr, err := fork("Test_NewExits_EnvVarSet")
+	stdout, stderr, err := fork("Test_NewExitsIfTargetInitFailsAndEnvExitOnWarningIsSet")
 
 	assert.Equal(t, "exit status 1", err.Error())
 	assert.Contains(t, "Warning: Failed to initialize sink \"loki\": parse \"://invalid-address\": missing protocol scheme\n", stderr)

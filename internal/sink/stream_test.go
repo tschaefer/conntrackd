@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func targetStream_WriterValid(t *testing.T) {
+func targetStreamReturnsHandleIfWriterIsValid(t *testing.T) {
 	for _, writer := range []string{"discard", "stdout", "stderr"} {
 		stream := &Stream{
 			Enable: true,
@@ -24,7 +24,7 @@ func targetStream_WriterValid(t *testing.T) {
 	}
 }
 
-func targetStream_WriterInvalid(t *testing.T) {
+func targetStreamReturnsErrorIfWriterIsInvalid(t *testing.T) {
 	stream := &Stream{
 		Enable: true,
 		Writer: "invalid-writer",
@@ -36,6 +36,6 @@ func targetStream_WriterInvalid(t *testing.T) {
 }
 
 func TestSinkTargetStream(t *testing.T) {
-	t.Run("TargetStream returns valid handler if writer valid", targetStream_WriterValid)
-	t.Run("TargetStream returns error if writer invalid", targetStream_WriterInvalid)
+	t.Run("stream.TargetStream returns handler if writer is valid", targetStreamReturnsHandleIfWriterIsValid)
+	t.Run("stream.TargetStream returns error if writer is invalid", targetStreamReturnsErrorIfWriterIsInvalid)
 }

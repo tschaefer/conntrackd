@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func targetLoki_AddressInvalid(t *testing.T) {
+func targetLokiReturnsErrorIfAddressIsInvalid(t *testing.T) {
 	loki := &Loki{
 		Enable:  true,
 		Address: "://invalid-address",
@@ -26,7 +26,7 @@ func targetLoki_AddressInvalid(t *testing.T) {
 	assert.EqualError(t, err, "parse \"://invalid-address\": missing protocol scheme")
 }
 
-func targetLoki_AddressUnreachable(t *testing.T) {
+func targetLokiReturnsErrorIfAddressIsUnreachable(t *testing.T) {
 	loki := &Loki{
 		Enable:  true,
 		Address: "http://example.invalid:1234",
@@ -37,7 +37,7 @@ func targetLoki_AddressUnreachable(t *testing.T) {
 	assert.EqualError(t, err, "Get \"http://example.invalid:1234/ready\": dial tcp: lookup example.invalid on 127.0.0.53:53: no such host")
 }
 
-func targetLoki_AddressNotReady(t *testing.T) {
+func targetLokiReturnsErrorIfLokiIsNotReady(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 	}))
@@ -53,7 +53,7 @@ func targetLoki_AddressNotReady(t *testing.T) {
 	assert.EqualError(t, err, "404 Not Found")
 }
 
-func setLabels(t *testing.T) {
+func setLabelsIgnoresInvalidInput(t *testing.T) {
 	loki := &Loki{
 		Enable:  true,
 		Address: "http://localhost:3100",
@@ -67,7 +67,7 @@ func setLabels(t *testing.T) {
 	assert.Contains(t, labels.String(), "host=hostname")
 }
 
-func targetLoki(t *testing.T) {
+func targetLokiReturnsHandler(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -83,7 +83,7 @@ func targetLoki(t *testing.T) {
 	assert.IsType(t, &slogloki.LokiHandler{}, handler)
 }
 
-func testAttrsToMetadata(t *testing.T) {
+func attrsToMetadataReturnsCleanedLabels(t *testing.T) {
 	labels := map[string]string{
 		"flow":      "1234567890",
 		"prot":      "TCP",
@@ -130,10 +130,10 @@ func testAttrsToMetadata(t *testing.T) {
 }
 
 func TestSinkTargetLoki(t *testing.T) {
-	t.Run("TargetLoki returns error if address invalid", targetLoki_AddressInvalid)
-	t.Run("TargetLoki returns error if address unreachable", targetLoki_AddressUnreachable)
-	t.Run("TargetLoki returns error if address is not ready", targetLoki_AddressNotReady)
-	t.Run("TargetLoki returns valid handler if address is reachable and ready", targetLoki)
-	t.Run("setLabels returns only valid labels", setLabels)
-	t.Run("attrsToMetadata returns valid labels", testAttrsToMetadata)
+	t.Run("loki.TargetLoki returns error if address is invalid", targetLokiReturnsErrorIfAddressIsInvalid)
+	t.Run("loki.TargetLoki returns error if address is unreachable", targetLokiReturnsErrorIfAddressIsUnreachable)
+	t.Run("loki.TargetLoki returns error if Loki is not ready", targetLokiReturnsErrorIfLokiIsNotReady)
+	t.Run("loki.TargetLoki returns handler if address is reachable and ready", targetLokiReturnsHandler)
+	t.Run("loki.setLabels ignores invalid Loki labels", setLabelsIgnoresInvalidInput)
+	t.Run("loki.attrsToMetadata returns cleaned Loki labels", attrsToMetadataReturnsCleanedLabels)
 }

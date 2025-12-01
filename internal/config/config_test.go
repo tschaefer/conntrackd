@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func initConfig_WithConfigFile(t *testing.T) {
+func initConfigSucceedsIfConfigFileIsAvailable(t *testing.T) {
 	content := `
 log:
   level: debug
@@ -45,14 +45,14 @@ sink:
 	assert.Equal(t, "stdout", viper.GetString("sink.stream.writer"))
 }
 
-func initConfig_WithoutConfigFile(t *testing.T) {
+func initConfigSucceedsIfNoConfigFileIsAvailable(t *testing.T) {
 	viper.Reset()
 
 	err := InitConfig("")
 	assert.NoError(t, err)
 }
 
-func TestInitConfig_ConfigFileNotFound(t *testing.T) {
+func TestInitConfigReturnsErrorIfConfigFileIsNotFound(t *testing.T) {
 	viper.Reset()
 
 	err := InitConfig("/nonexistent/config.yaml")
@@ -60,7 +60,7 @@ func TestInitConfig_ConfigFileNotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "no such file or directory")
 }
 
-func initConfig_InvalidYAML(t *testing.T) {
+func initConfigReturnsErrorIfConfigFileHasInvalidYAML(t *testing.T) {
 	content := `
 invalid yaml content:
   - this is not valid
@@ -81,7 +81,7 @@ invalid yaml content:
 	assert.Contains(t, err.Error(), "error reading config file")
 }
 
-func initConfig_EnvironmentVariableOverride(t *testing.T) {
+func initConfigSucceedsIfEnvironmentVariableOverridesSettings(t *testing.T) {
 	content := `
 log:
   level: info
@@ -113,9 +113,9 @@ sink:
 }
 
 func TestConfig(t *testing.T) {
-	t.Run("InitConfig with config file", initConfig_WithConfigFile)
-	t.Run("InitConfig without config file", initConfig_WithoutConfigFile)
-	t.Run("InitConfig with non-existing file", TestInitConfig_ConfigFileNotFound)
-	t.Run("InitConfig with invalid yaml", initConfig_InvalidYAML)
-	t.Run("InitConfig with environment variable override", initConfig_EnvironmentVariableOverride)
+	t.Run("config.InitConfig succeeds if config file is available", initConfigSucceedsIfConfigFileIsAvailable)
+	t.Run("config.InitConfig succeeds if no config file is available", initConfigSucceedsIfNoConfigFileIsAvailable)
+	t.Run("config.InitConfig returns error if config file is not found", TestInitConfigReturnsErrorIfConfigFileIsNotFound)
+	t.Run("config.InitConfig returns error if config file has invalid YAML", initConfigReturnsErrorIfConfigFileHasInvalidYAML)
+	t.Run("config.InitConfig succeeds if environment variable overrides settings", initConfigSucceedsIfEnvironmentVariableOverridesSettings)
 }

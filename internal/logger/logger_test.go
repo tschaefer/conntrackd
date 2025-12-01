@@ -12,13 +12,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func newReturnsError_UnknownLogLevel(t *testing.T) {
+func newReturnsErrorIfLogLevelIsInvalid(t *testing.T) {
 	_, err := NewLogger("unknown")
 	assert.Error(t, err)
 	assert.EqualError(t, err, `unknown log level: "unknown"`)
 }
 
-func newReturnsLogger_KnownLogLevels(t *testing.T) {
+func newReturnsLoggerIfLogLevelIsValid(t *testing.T) {
 	for _, level := range []string{"debug", "info", "warn", "error"} {
 		logger, err := NewLogger(level)
 		assert.NoError(t, err)
@@ -28,7 +28,7 @@ func newReturnsLogger_KnownLogLevels(t *testing.T) {
 	}
 }
 
-func levelReturnsCorrectLevel(t *testing.T) {
+func levelReturnsCorrectLogLevel(t *testing.T) {
 	for str, level := range map[string]slog.Level{
 		"debug": slog.LevelDebug,
 		"info":  slog.LevelInfo,
@@ -43,7 +43,7 @@ func levelReturnsCorrectLevel(t *testing.T) {
 }
 
 func TestLogger(t *testing.T) {
-	t.Run("New returns error for unknown log level", newReturnsError_UnknownLogLevel)
-	t.Run("New returns logger for known log levels", newReturnsLogger_KnownLogLevels)
-	t.Run("Level returns correct level", levelReturnsCorrectLevel)
+	t.Run("logger.New returns error if log level is invalid", newReturnsErrorIfLogLevelIsInvalid)
+	t.Run("logger.New returns logger if log level is valid", newReturnsLoggerIfLogLevelIsValid)
+	t.Run("logger.Level returns correct log level", levelReturnsCorrectLogLevel)
 }
