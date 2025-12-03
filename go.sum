@@ -1153,8 +1153,8 @@ github.com/tidwall/pretty v1.0.0/go.mod h1:XNkn88O1ChpSDQmQeStsy+sBenx6DDtFZJxhV
 github.com/tmc/grpc-websocket-proxy v0.0.0-20170815181823-89b8d40f7ca8/go.mod h1:ncp9v5uamzpCO7NfCPTXjqaC+bZgJeR0sMTm6dMHP7U=
 github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5/go.mod h1:ncp9v5uamzpCO7NfCPTXjqaC+bZgJeR0sMTm6dMHP7U=
 github.com/tmc/grpc-websocket-proxy v0.0.0-20201229170055-e5319fda7802/go.mod h1:ncp9v5uamzpCO7NfCPTXjqaC+bZgJeR0sMTm6dMHP7U=
-github.com/tschaefer/slog-journal v0.1.0 h1:CpEkZJOwAkPLIg97qT+nLfVMje8QDvl/bfTlhE0Dtg0=
-github.com/tschaefer/slog-journal v0.1.0/go.mod h1:TV7KajM4s81DYWEYD+TJfIvKRIWHe3CzHgfSaBlvWz8=
+github.com/tschaefer/slog-journal v0.1.1 h1:Bkb+UYODtxXC162lgQ43ul5PZMolBYrznZEcpD7150Q=
+github.com/tschaefer/slog-journal v0.1.1/go.mod h1:TV7KajM4s81DYWEYD+TJfIvKRIWHe3CzHgfSaBlvWz8=
 github.com/tv42/httpunix v0.0.0-20150427012821-b75d8614f926/go.mod h1:9ESjWnEqriFuLhtthL60Sar/7RFoluCcXsuvEwTV5KM=
 github.com/tv42/httpunix v0.0.0-20191220191345-2ba4b9c3382c/go.mod h1:hzIxponao9Kjc7aWznkXaL4U4TWaDSs8zcsY4Ka08nM=
 github.com/ugorji/go v1.1.4/go.mod h1:uQMGLiO92mf5W77hV/PUCpI3pbzQx3CRekS0kk+RGrc=

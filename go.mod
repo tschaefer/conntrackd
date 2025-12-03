@@ -18,7 +18,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/ti-mo/conntrack v0.6.0
 	github.com/ti-mo/netfilter v0.5.3
-	github.com/tschaefer/slog-journal v0.1.0
+	github.com/tschaefer/slog-journal v0.1.1
 	golang.org/x/sync v0.18.0
 )
 
