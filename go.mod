@@ -13,7 +13,7 @@ require (
 	github.com/samber/slog-loki/v3 v3.6.0
 	github.com/samber/slog-multi v1.6.0
 	github.com/samber/slog-syslog/v2 v2.5.2
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
 	github.com/ti-mo/conntrack v0.6.0
