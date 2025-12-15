@@ -12,18 +12,12 @@ import (
 	"github.com/tschaefer/conntrackd/internal/logger"
 )
 
-type Profiler interface {
-	Start() error
-	Stop() error
+type Profiler struct {
+	Instance *pyroscope.Profiler
+	Config   pyroscope.Config
 }
 
-type profiler struct {
-	instance *pyroscope.Profiler
-	config   pyroscope.Config
-	address  string
-}
-
-func NewProfiler(address string) Profiler {
+func NewProfiler(address string) *Profiler {
 	var pylogger pyroscope.Logger
 	if logger.Level() == slog.LevelDebug {
 		pylogger = pyroscope.StandardLogger
@@ -48,30 +42,29 @@ func NewProfiler(address string) Profiler {
 			pyroscope.ProfileBlockDuration,
 		},
 	}
-	return &profiler{
-		config:  cfg,
-		address: address,
+	return &Profiler{
+		Config: cfg,
 	}
 }
 
-func (p *profiler) Start() error {
+func (p *Profiler) Start() error {
 	runtime.SetMutexProfileFraction(5)
 	runtime.SetBlockProfileRate(5)
 
-	profiler, err := pyroscope.Start(p.config)
+	profiler, err := pyroscope.Start(p.Config)
 	if err != nil {
-		p.instance = nil
+		p.Instance = nil
 		return err
 	}
-	p.instance = profiler
+	p.Instance = profiler
 
 	return nil
 }
 
-func (p *profiler) Stop() error {
-	if p.instance == nil {
+func (p *Profiler) Stop() error {
+	if p.Instance == nil {
 		return nil
 	}
 
-	return p.instance.Stop()
+	return p.Instance.Stop()
 }
