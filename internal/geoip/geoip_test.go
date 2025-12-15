@@ -21,18 +21,20 @@ func newReturnsErrorIfDatabaseIsInvalid(t *testing.T) {
 }
 
 func newReturnsInstanceIfDatabaseIsValid(t *testing.T) {
-	geoIP, err := NewGeoIP(geoDatabasePath)
+	geo, err := NewGeoIP(geoDatabasePath)
 	assert.NoError(t, err)
-	assert.NotNil(t, geoIP)
-	assert.IsType(t, &GeoIP{}, geoIP)
-	assert.Equal(t, geoIP.Database, geoDatabasePath)
-	assert.IsType(t, geoIP.Reader, &geoip2.Reader{})
+	assert.NotNil(t, geo)
+	defer geo.Close()
+	assert.IsType(t, &GeoIP{}, geo)
+	assert.Equal(t, geo.Database, geoDatabasePath)
+	assert.IsType(t, geo.Reader, &geoip2.Reader{})
 }
 
 func locationReturnsNilIfAddressIsUnresolved(t *testing.T) {
 	geo, err := NewGeoIP(geoDatabasePath)
 	assert.NoError(t, err)
 	assert.NotNil(t, geo)
+	defer geo.Close()
 
 	for ipStr, desc := range map[string]string{
 		"::1":           "local address",
@@ -50,6 +52,7 @@ func locationReturnsLocationIfAddressIsResolved(t *testing.T) {
 	geo, err := NewGeoIP(geoDatabasePath)
 	assert.NoError(t, err)
 	assert.NotNil(t, geo)
+	defer geo.Close()
 
 	ip, _ := netip.ParseAddr("63.176.75.230")
 	location := geo.Location(ip)
