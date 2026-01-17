@@ -17,10 +17,12 @@ const (
 	ExitOnWarningEnv string = "CONNTRACKD_SINK_EXIT_ON_WARNING"
 )
 
+// Sink represents a multi logger sink.
 type Sink struct {
 	Logger *slog.Logger
 }
 
+// Config holds the configuration for different logging sinks.
 type Config struct {
 	Journal Journal
 	Syslog  Syslog
@@ -28,8 +30,10 @@ type Config struct {
 	Stream  Stream
 }
 
+// SinkTarget defines a function type for initializing a sink target.
 type SinkTarget func(*slog.HandlerOptions) (slog.Handler, error)
 
+// NewSink creates a new multi logger sink based on the provided configuration.
 func NewSink(config *Config) (*Sink, error) {
 	options := &slog.HandlerOptions{
 		Level: slog.LevelInfo,

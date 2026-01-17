@@ -12,11 +12,13 @@ import (
 	"github.com/tschaefer/conntrackd/internal/logger"
 )
 
+// Profiler is a wrapper around the pyroscope profiler.
 type Profiler struct {
 	Instance *pyroscope.Profiler
 	Config   pyroscope.Config
 }
 
+// NewProfiler creates a new Profiler instance with the given server address.
 func NewProfiler(address string) *Profiler {
 	var pylogger pyroscope.Logger
 	if logger.Level() == slog.LevelDebug {
@@ -47,6 +49,7 @@ func NewProfiler(address string) *Profiler {
 	}
 }
 
+// Start starts the profiler.
 func (p *Profiler) Start() error {
 	runtime.SetMutexProfileFraction(5)
 	runtime.SetBlockProfileRate(5)
@@ -61,6 +64,7 @@ func (p *Profiler) Start() error {
 	return nil
 }
 
+// Stop stops the profiler.
 func (p *Profiler) Stop() error {
 	if p.Instance == nil {
 		return nil

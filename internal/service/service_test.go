@@ -90,7 +90,7 @@ func processEventDoesRecordIfEventTCPorUDP(t *testing.T) {
 
 func processEventDoesNotRecordIfFilteredOut(t *testing.T) {
 	sink, logger, record := __setupSinkAndLogger(t)
-	filter, err := filter.NewFilter([]string{"drop any"})
+	filter, err := filter.NewFilter([]string{"drop true"})
 	if err != nil {
 		t.Fatalf("failed to create filter: %v", err)
 	}

@@ -10,16 +10,20 @@ import (
 	"os"
 )
 
+// Logger is a wrapper around slog.Logger with a predefined log level.
 type Logger struct {
 	Logger *slog.Logger
 	Level  slog.Level
 }
 
 var (
+	// Supported log levels
 	Levels = []string{"debug", "info", "warn", "error"}
-	level  slog.Level
+	// Current log level
+	level slog.Level
 )
 
+// NewLogger creates a new Logger with the specified log level.
 func NewLogger(levelStr string) (*Logger, error) {
 	err := level.UnmarshalText([]byte(levelStr))
 	if err != nil {
@@ -37,6 +41,7 @@ func NewLogger(levelStr string) (*Logger, error) {
 	}, nil
 }
 
+// Level returns the current log level.
 func Level() slog.Level {
 	return level
 }

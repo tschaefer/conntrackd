@@ -114,7 +114,7 @@ func init() {
 
 	runCmd.Flags().StringVar(&cfgFile, "config", "", "config file (default is /etc/conntrackd/conntrackd.{yaml,json,toml})")
 
-	runCmd.Flags().StringArray("filter", nil, "Filter rules in DSL format (repeatable, first-match wins)")
+	runCmd.Flags().StringArray("filter", nil, "Filter rules in CEL format (repeatable, first-match wins)")
 	_ = viper.BindPFlag("filter", runCmd.Flags().Lookup("filter"))
 
 	runCmd.Flags().String("log.level", "info", fmt.Sprintf("Log level (%s)", strings.Join(logger.Levels, ", ")))

@@ -11,6 +11,10 @@ import (
 	"github.com/spf13/viper"
 )
 
+// InitConfig initializes the configuration using Viper.
+// It reads from the specified config file or defaults to
+// /etc/conntrackd/conntrackd.{yaml,json,toml}.
+// Environment variables with the prefix CONNTRACKD_ can override config values.
 func InitConfig(cfgFile string) error {
 	if cfgFile != "" {
 		viper.SetConfigFile(cfgFile)

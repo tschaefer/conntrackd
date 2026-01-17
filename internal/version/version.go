@@ -13,6 +13,7 @@ var (
 	GitCommit, Version string
 )
 
+// Release returns the current version of the application.
 func Release() string {
 	if Version == "" {
 		Version = "dev"
@@ -21,10 +22,12 @@ func Release() string {
 	return Version
 }
 
+// Commit returns the current git commit hash of the application.
 func Commit() string {
 	return GitCommit
 }
 
+// Banner returns the ASCII art banner of the application.
 func Banner() string {
 	return `
                        _                  _       _
@@ -35,6 +38,9 @@ func Banner() string {
  `
 }
 
+// Print prints the colored banner, release version, and commit hash to the
+// console. Coloring can be disabled by setting the NO_COLOR environment
+// variable to "1" or "true".
 func Print() {
 	no_color, ok := os.LookupEnv("NO_COLOR")
 	if ok && no_color == "1" || no_color == "true" {

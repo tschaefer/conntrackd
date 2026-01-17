@@ -48,14 +48,14 @@ conntrackd logs conntrack events to various sinks.
 **Protocol Support:** Only TCP and UDP events are processed. All other protocols
 (ICMP, IGMP, etc.) are automatically ignored and never logged, regardless of filter rules.
 
-You can use filters to control which TCP/UDP events are logged using a
-Domain-Specific Language (DSL).
+You can use filters to control which TCP/UDP events are logged using
+[CEL (Common Expression Language)](https://cel.dev).
 The `--filter` flag lets you specify filter rules:
 
 ```bash
 sudo conntrackd run \
-  --filter "drop destination address 8.8.8.8" \
-  --filter "log protocol TCP and destination network PUBLIC" \
+  --filter 'drop destination.address == "8.8.8.8"' \
+  --filter 'log protocol == "TCP" && is_network(destination.address, "PUBLIC")' \
   --filter "drop any" \
   --sink.journal.enable
 ```
@@ -64,7 +64,7 @@ sudo conntrackd run \
 - Rules are evaluated in order (first-match wins)
 - Events are **logged by default** when no rule matches
 - `--filter` flag can be repeated for multiple rules
-- Use `drop any` as a final rule to block all non-matching events from being logged
+- Use `drop any` or `drop true` as a final rule to block all non-matching events from being logged
 
 **Important:** Filters control which conntrack events are **logged**,
 not network traffic. Traffic always flows normally; filters only affect logging.
@@ -73,25 +73,25 @@ not network traffic. Traffic always flows normally; filters only affect logging.
 
 ```bash
 # Don't log events to a specific IP
---filter "drop destination address 8.8.8.8"
+--filter 'drop destination.address == "8.8.8.8"'
 
 # Log only NEW TCP connections (deny everything else)
---filter "log type NEW and protocol TCP"
+--filter 'log event.type == "NEW" && protocol == "TCP"'
 --filter "drop any"
 
 # Don't log DNS to specific server
---filter "drop destination address 10.19.80.100 on port 53"
+--filter 'drop destination.address == "10.19.80.100" && destination.port == 53'
 
 # Don't log any traffic to private networks
---filter "drop destination network PRIVATE"
+--filter 'drop is_network(destination.address, "PRIVATE")'
 
 # Log only traffic from public IPs using TCP
---filter "log source network PUBLIC and protocol TCP"
+--filter 'log is_network(source.address, "PUBLIC") && protocol == "TCP"'
 --filter "drop any"
 ```
 
-See [docs/filter.md](docs/filter.md) for complete DSL documentation,
-including grammar, operators, and advanced examples.
+See [docs/filter.md](docs/filter.md) for complete CEL documentation,
+including available variables, functions, operators, and advanced examples.
 
 ## Configuration
 
