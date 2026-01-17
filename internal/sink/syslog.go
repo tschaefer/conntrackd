@@ -13,13 +13,16 @@ import (
 	slogsyslog "github.com/samber/slog-syslog/v2"
 )
 
+// Syslog represents the configuration for syslog logging.
 type Syslog struct {
 	Enable  bool
 	Address string
 }
 
+// SyslogProtocols lists the supported syslog protocols.
 var SyslogProtocols = []string{"udp", "tcp", "unix", "unixgram", "unixpacket"}
 
+// TargetSyslog creates a sink target for syslog logging.
 func (s *Syslog) TargetSyslog(options *slog.HandlerOptions) (slog.Handler, error) {
 	url, err := url.Parse(s.Address)
 	if err != nil {

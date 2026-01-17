@@ -28,19 +28,24 @@ const (
 	pushPath  = "/loki/api/v1/push"
 )
 
+// Loki represents Loki logging sink.
 type Loki struct {
 	Enable  bool
 	Address string
 	Labels  []string
 }
 
+// Supported Loki protocols.
 var LokiProtocols = []string{"http", "https"}
+
+// Attributes to be used as labels in Loki payload.
 var labelAttrs = []string{
 	"flow", "type", "prot",
 	"src_addr", "src_port", "dst_addr", "dst_port",
 	"tcp_state",
 }
 
+// TargetLoki creates a sink target for Loki.
 func (l *Loki) TargetLoki(options *slog.HandlerOptions) (slog.Handler, error) {
 	url, err := url.Parse(l.Address)
 	if err != nil {
@@ -78,6 +83,7 @@ func (l *Loki) TargetLoki(options *slog.HandlerOptions) (slog.Handler, error) {
 	return o.NewLokiHandler(), nil
 }
 
+// isReady checks if Loki server is ready to accept requests.
 func (l *Loki) isReady(url url.URL) error {
 	url.Path = url.Path + readyPath
 
@@ -96,6 +102,7 @@ func (l *Loki) isReady(url url.URL) error {
 	return nil
 }
 
+// setLabels sets external labels for Loki client.
 func (l *Loki) setLabels(hostname string) labelutil.LabelSet {
 	labels := labelutil.LabelSet{
 		LabelSet: model.LabelSet{
@@ -121,6 +128,7 @@ func (l *Loki) setLabels(hostname string) labelutil.LabelSet {
 	return labels
 }
 
+// createLogger creates a go-kit logger for Loki client.
 func (l *Loki) createLogger() kitlog.Logger {
 	level := logger.Level().String()
 	klevel := kitlevel.ParseDefault(level, kitlevel.InfoValue())
@@ -132,6 +140,7 @@ func (l *Loki) createLogger() kitlog.Logger {
 	return klogger
 }
 
+// attrsToMetadata converts slog attributes to Loki metadata labels.
 func attrsToMetadata(addSource bool, replaceAttr func(groups []string, a slog.Attr) slog.Attr, loggerAttr []slog.Attr, groups []string, record *slog.Record) model.LabelSet {
 	attrs := slogcommon.AppendRecordAttrsToAttrs(loggerAttr, groups, record)
 

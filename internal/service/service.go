@@ -21,6 +21,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// Service represents the conntrack service.
 type Service struct {
 	Filter *filter.Filter
 	GeoIP  *geoip.GeoIP
@@ -28,6 +29,7 @@ type Service struct {
 	Logger *slog.Logger
 }
 
+// NewService creates a new conntrack service.
 func NewService(logger *logger.Logger, geoip *geoip.GeoIP, filter *filter.Filter, sink *sink.Sink) (*Service, error) {
 	slog.SetDefault(logger.Logger)
 
@@ -39,6 +41,7 @@ func NewService(logger *logger.Logger, geoip *geoip.GeoIP, filter *filter.Filter
 	}, nil
 }
 
+// Run starts the conntrack listener service.
 func (s *Service) Run(ctx context.Context) bool {
 	slog.Info("Starting conntrack listener.",
 		"release", version.Release(), "commit", version.Commit(),
@@ -64,6 +67,7 @@ func (s *Service) Run(ctx context.Context) bool {
 	return s.handleShutdown(ctx, cancel, con, g, errCh)
 }
 
+// setupConntrack initializes the conntrack connection and sets options.
 func (s *Service) setupConntrack() (*conntrack.Conn, error) {
 	con, err := conntrack.Dial(nil)
 	if err != nil {
@@ -80,6 +84,7 @@ func (s *Service) setupConntrack() (*conntrack.Conn, error) {
 	return con, nil
 }
 
+// startEventListener starts listening for conntrack events.
 func (s *Service) startEventListener(con *conntrack.Conn) (chan conntrack.Event, chan error, error) {
 	evCh := make(chan conntrack.Event, 1024)
 	errCh, err := con.Listen(evCh, 4, netfilter.GroupsCT)
@@ -91,6 +96,7 @@ func (s *Service) startEventListener(con *conntrack.Conn) (chan conntrack.Event,
 	return evCh, errCh, nil
 }
 
+// startEventProcessor starts the event processing goroutine.
 func (s *Service) startEventProcessor(ctx context.Context, evCh chan conntrack.Event) *errgroup.Group {
 	var g errgroup.Group
 	g.Go(func() error {
@@ -109,6 +115,7 @@ func (s *Service) startEventProcessor(ctx context.Context, evCh chan conntrack.E
 	return &g
 }
 
+// processEvent processes a single conntrack event.
 func (s *Service) processEvent(event conntrack.Event) {
 	// Only process TCP and UDP events, ignore all other protocols (ICMP, etc.)
 	protocol := event.Flow.TupleOrig.Proto.Protocol
@@ -127,6 +134,7 @@ func (s *Service) processEvent(event conntrack.Event) {
 	}
 }
 
+// handleShutdown manages graceful shutdown of the service.
 func (s *Service) handleShutdown(ctx context.Context, cancel context.CancelFunc, con *conntrack.Conn, g *errgroup.Group, errCh chan error) bool {
 	select {
 	case err := <-errCh:

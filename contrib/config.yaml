@@ -21,11 +21,12 @@ geoip:
   database: "/var/lib/GeoIP/GeoLite2-City.mmdb"
 
 # Filter rules (optional)
+# Rules use CEL (Common Expression Language) syntax
 # Rules are evaluated in order (first-match wins)
 # Events are logged by default when no rule matches
 filter:
-  - "drop destination address 8.8.8.8"
-  - "log protocol TCP and destination network PUBLIC"
+  - 'drop destination.address == "8.8.8.8"'
+  - 'log protocol == "TCP" && is_network(destination.address, "PUBLIC")'
   - "drop any"
 
 # Sink configuration

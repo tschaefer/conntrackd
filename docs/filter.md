@@ -1,8 +1,8 @@
-# Filter DSL Documentation
+# Filter CEL Documentation
 
 ## Overview
 
-The conntrackd filter DSL (Domain-Specific Language) allows you to control
+The conntrackd filter uses CEL (Common Expression Language) to control
 which conntrack events are **logged** to your configured sinks
 (journal, syslog, Loki, etc.).
 
@@ -24,9 +24,9 @@ multiple times:
 
 ```bash
 conntrackd run \
-    --filter "drop destination address 8.8.8.8" \
-    --filter "log protocol TCP" \
-    --filter "drop ANY"
+    --filter 'drop destination.address == "8.8.8.8"' \
+    --filter 'log protocol == "TCP" && is_network(destination.address, "PUBLIC")' \
+    --filter "drop any"
 ```
 
 ## Understanding Allow-by-Default
@@ -34,231 +34,115 @@ conntrackd run \
 By default, conntrackd logs all conntrack events. This means:
 
 - If no filters match an event, it **is logged** (allow-by-default)
-- An `log` rule means "log this event"
+- A `log` rule means "log this event"
 - A `drop` rule means "don't log this event"
 
-To log **only** specific events, use an `log` rule followed by `drop ANY`:
+To log **only** specific events, use a `log` rule followed by `drop any` or
+`drop true` to prevent logging of all other events.
 
 ```bash
 # Log ONLY NEW TCP connections
---filter "log type NEW and protocol TCP"
---filter "drop ANY"
+--filter 'log event.type == "NEW" && protocol == "TCP"'
+--filter "drop any"
 ```
 
-Without the `drop ANY`, all non-matching events would still be logged.
+Without the `drop any`, all non-matching events would still be logged.
 
-## Grammar
+## CEL Syntax
 
-The filter DSL follows this grammar (EBNF notation):
+### Basic Structure
 
-```ebnf
-rule       ::= action expression
-action     ::= "log" | "drop"
-expression ::= orExpr
-orExpr     ::= andExpr { "or" andExpr }
-andExpr    ::= notExpr { "and" notExpr }
-notExpr    ::= [ "not" | "!" ] primary
-primary    ::= predicate | "(" expression ")"
+Each filter rule has two parts:
+1. **Action**: `log` or `drop`
+2. **Expression**: A CEL boolean expression
 
-predicate  ::= eventPred | protoPred | addrPred | networkPred | portPred | anyPred
-
-eventPred  ::= "type" identList
-protoPred  ::= "protocol" identList
-addrPred   ::= direction "address" addrList [ "on" "port" portSpec ]
-networkPred::= direction "network" identList
-portPred   ::= [ direction ] "port" portSpec
-             | "on" "port" portSpec
-anyPred    ::= "ANY"
-
-direction  ::= "source" | "src" | "destination" | "dst" | "dest"
-identList  ::= IDENT { "," IDENT }
-addrList   ::= ADDRESS { "," ADDRESS }
-portSpec   ::= NUMBER | NUMBER "-" NUMBER | NUMBER { "," NUMBER }
+```
+log <expression>
+drop <expression>
 ```
 
-## Predicates
+### Available Variables
 
-### Any (Catch-All)
+| Variable | Type | Description | Example Values |
+|----------|------|-------------|----------------|
+| `event.type` | string | Event type | "NEW", "UPDATE", "DESTROY" |
+| `protocol` | string | Protocol | "TCP", "UDP" |
+| `source.address` | string | Source IP address | "10.0.0.1", "2001:db8::1" |
+| `destination.address` | string | Destination IP address | "8.8.8.8", "2600:1901::1" |
+| `source.port` | int | Source port | 12345 |
+| `destination.port` | int | Destination port | 80, 443 |
 
-The `ANY` predicate matches all events. It's typically used with `drop` to
-block all non-matching events:
+### Custom Functions
 
-```bash
-# Log only NEW TCP connections (deny everything else)
-log type NEW and protocol TCP
-drop ANY
+#### `is_network(ip, network_type)`
 
-# Log only traffic to specific IPs (deny everything else)
-log destination address 1.2.3.4,5.6.7.8
-drop ANY
+Checks if an IP address belongs to a network category.
+
+**Parameters:**
+- `ip` (string): IP address to check
+- `network_type` (string): Network category
+
+**Network Categories:**
+- `"LOCAL"` - Loopback addresses (127.0.0.0/8, ::1) and link-local addresses
+- `"PRIVATE"` - RFC1918 private addresses (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) and IPv6 ULA (fc00::/7)
+- `"PUBLIC"` - Public addresses (not LOCAL, PRIVATE, or MULTICAST)
+- `"MULTICAST"` - Multicast addresses (224.0.0.0/4, ff00::/8)
+
+**Examples:**
+```cel
+is_network(source.address, "PRIVATE")
+is_network(destination.address, "PUBLIC")
 ```
 
-### Event Type
+#### `in_cidr(ip, cidr)`
 
-Match on conntrack event types:
+Checks if an IP address is within a CIDR range.
 
-```bash
-# Deny NEW events
-drop type NEW
+**Parameters:**
+- `ip` (string): IP address to check
+- `cidr` (string): CIDR notation (e.g., "192.168.1.0/24")
 
-# Allow UPDATE or DESTROY events
-log type UPDATE,DESTROY
+**Examples:**
+```cel
+in_cidr(destination.address, "8.8.8.0/24")
+in_cidr(source.address, "2001:db8::/32")
 ```
 
-Valid types: `NEW`, `UPDATE`, `DESTROY`
+#### `in_range(value, min, max)`
 
-### Protocol
+Checks if a numeric value is within a range (inclusive).
 
-Match on protocol:
+**Parameters:**
+- `value` (int): Value to check
+- `min` (int): Minimum value (inclusive)
+- `max` (int): Maximum value (inclusive)
 
-```bash
-# Deny TCP events
-drop protocol TCP
-
-# Allow TCP or UDP
-log protocol TCP,UDP
-```
-
-Valid protocols: `TCP`, `UDP`
-
-### Network Classification
-
-Match on network categories:
-
-```bash
-# Deny traffic to private networks
-drop destination network PRIVATE
-
-# Allow traffic from public networks
-log source network PUBLIC
-```
-
-Valid network types:
-- `LOCAL` - Loopback addresses (127.0.0.0/8, ::1) and link-local addresses
-- `PRIVATE` - RFC1918 private addresses (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) and IPv6 ULA (fc00::/7)
-- `PUBLIC` - Public addresses (not LOCAL, PRIVATE, or MULTICAST)
-- `MULTICAST` - Multicast addresses (224.0.0.0/4, ff00::/8)
-
-### IP Address
-
-Match on specific IP addresses or CIDR ranges:
-
-```bash
-# Deny traffic to specific IP
-drop destination address 8.8.8.8
-
-# Allow traffic from a CIDR range
-log source address 192.168.1.0/24
-
-# Match IPv6 addresses
-drop destination address 2001:4860:4860::8888
-
-# Multiple addresses
-drop destination address 1.1.1.1,8.8.8.8
-```
-
-### Port
-
-Match on ports:
-
-```bash
-# Deny traffic to port 22
-drop destination port 22
-
-# Allow traffic from ports 1024-65535
-log source port 1024-65535
-
-# Match multiple ports
-drop destination port 22,23,3389
-
-# Match traffic on any port (source or destination)
-deny on port 53
-```
-
-### Address with Port
-
-Combine address and port matching:
-
-```bash
-# Deny traffic to specific IP on specific port
-drop destination address 10.19.80.100 on port 53
+**Examples:**
+```cel
+in_range(destination.port, 8000, 8999)
+in_range(source.port, 1024, 65535)
 ```
 
 ## Operators
 
-### AND
+### Comparison Operators
 
-Both conditions must be true:
+- `==` - Equal to
+- `!=` - Not equal to
+- `<` - Less than
+- `<=` - Less than or equal to
+- `>` - Greater than
+- `>=` - Greater than or equal to
 
-```bash
-log type NEW and protocol TCP
-```
+### Logical Operators
 
-### OR
+- `&&` - AND (both conditions must be true)
+- `||` - OR (at least one condition must be true)
+- `!` - NOT (negates a condition)
 
-At least one condition must be true:
+### Grouping
 
-```bash
-log type NEW or type UPDATE
-```
-
-### NOT
-
-Negate a condition:
-
-```bash
-log not type DESTROY
-```
-
-### Parentheses
-
-Group expressions:
-
-```bash
-log (type NEW and protocol TCP) or (type UPDATE and protocol UDP)
-```
-
-## Operator Precedence
-
-1. NOT (highest)
-2. AND
-3. OR (lowest)
-
-Example: `log type NEW or type UPDATE and protocol TCP` parses as `log type NEW or (type UPDATE and protocol TCP)`
-
-## Evaluation Semantics
-
-### First-Match Wins
-
-Rules are evaluated in the order they are specified. The first rule whose predicate matches determines the action (allow or deny).
-
-```bash
-# First rule matches TCP traffic - allows it
-# Second rule never evaluated for TCP to 8.8.8.8
-conntrackd run \
-  --filter "log protocol TCP" \
-  --filter "drop destination address 8.8.8.8"
-```
-
-### Allow-by-Default
-
-If no rule matches an event, it is **logged** (allowed by default):
-
-```bash
-# Don't log events to 8.8.8.8
-# All other events ARE logged
-conntrackd run --filter "drop destination address 8.8.8.8"
-```
-
-To change this behavior and log **only** specific events, use `drop ANY` as the final rule:
-
-```bash
-# Log ONLY events to 8.8.8.8
-# All other events are NOT logged
-conntrackd run \
-  --filter "log destination address 8.8.8.8" \
-  --filter "drop ANY"
-```
+Use parentheses `()` to group expressions and control evaluation order.
 
 ## Examples
 
@@ -268,8 +152,8 @@ Don't log events to a specific IP address, but log all TCP traffic to public net
 
 ```bash
 conntrackd run \
-  --filter "drop destination address 8.8.8.8" \
-  --filter "log protocol TCP and destination network PUBLIC"
+  --filter 'drop destination.address == "8.8.8.8"' \
+  --filter 'log protocol == "TCP" && is_network(destination.address, "PUBLIC")'
 ```
 
 **Evaluation:**
@@ -283,8 +167,8 @@ Don't log DNS traffic to a specific IP, log all other TCP/UDP:
 
 ```bash
 conntrackd run \
-  --filter "drop destination address 10.19.80.100 on port 53" \
-  --filter "log protocol TCP,UDP"
+  --filter 'drop destination.address == "10.19.80.100" && destination.port == 53' \
+  --filter 'log protocol == "TCP" || protocol == "UDP"'
 ```
 
 **Evaluation:**
@@ -298,8 +182,8 @@ Log only NEW TCP connections (don't log anything else):
 
 ```bash
 conntrackd run \
-  --filter "log type NEW and protocol TCP" \
-  --filter "drop ANY"
+  --filter 'log event.type == "NEW" && protocol == "TCP"' \
+  --filter "drop any"
 ```
 
 **Evaluation:**
@@ -307,7 +191,7 @@ conntrackd run \
 - NEW UDP: Matches second rule → **NOT LOGGED**
 - UPDATE/DESTROY: Matches second rule → **NOT LOGGED**
 
-**Note:** Without `drop ANY`, all non-matching events would still be logged.
+**Note:** Without `drop any`, all non-matching events would still be logged.
 
 ### Example 4: Complex Filtering
 
@@ -315,8 +199,8 @@ Don't log outbound traffic to private networks on specific ports:
 
 ```bash
 conntrackd run \
-  --filter "drop destination network PRIVATE and destination port 22,23,3389" \
-  --filter "log source network PRIVATE"
+  --filter 'drop is_network(destination.address, "PRIVATE") && (destination.port == 22 || destination.port == 23 || destination.port == 3389)' \
+  --filter 'log is_network(source.address, "PRIVATE")'
 ```
 
 **Evaluation:**
@@ -324,34 +208,119 @@ conntrackd run \
 - Private network source: Matches second rule → **LOGGED**
 - Other traffic: No match → **LOGGED** (default)
 
+### Example 5: Port Range Filtering
+
+Log only events to web ports:
+
+```bash
+conntrackd run \
+  --filter 'log destination.port == 80 || destination.port == 443 || in_range(destination.port, 8000, 8999)' \
+  --filter "drop any"
+```
+
+### Example 6: CIDR-based Filtering
+
+Log traffic to specific subnets:
+
+```bash
+conntrackd run \
+  --filter 'log in_cidr(destination.address, "192.168.1.0/24") || in_cidr(destination.address, "10.0.0.0/8")' \
+  --filter "drop any"
+```
+
+### Example 7: IPv6 Filtering
+
+Handle IPv6 addresses:
+
+```bash
+conntrackd run \
+  --filter 'drop destination.address == "2001:4860:4860::8888"' \
+  --filter 'log is_network(destination.address, "PUBLIC")'
+```
+
+### Example 8: Complex Negation
+
+Log everything except traffic to private networks on SSH port:
+
+```bash
+conntrackd run \
+  --filter 'drop is_network(destination.address, "PRIVATE") && destination.port == 22' \
+  --filter "log any"
+```
+
+Alternatively using negation:
+
+```bash
+conntrackd run \
+  --filter 'log !(is_network(destination.address, "PRIVATE") && destination.port == 22)'
+```
+
+## Migration from Old DSL
+
+If you're migrating from the old DSL syntax, here are the key changes:
+
+| Old DSL | New CEL |
+|---------|---------|
+| `type NEW` | `event.type == "NEW"` |
+| `protocol TCP` | `protocol == "TCP"` |
+| `source address 10.0.0.1` | `source.address == "10.0.0.1"` |
+| `destination address 8.8.8.8` | `destination.address == "8.8.8.8"` |
+| `source port 80` | `source.port == 80` |
+| `destination port 443` | `destination.port == 443` |
+| `source network PRIVATE` | `is_network(source.address, "PRIVATE")` |
+| `destination network PUBLIC` | `is_network(destination.address, "PUBLIC")` |
+| `destination address 8.8.8.0/24` | `in_cidr(destination.address, "8.8.8.0/24")` |
+| `destination address 10.19.80.100 on port 53` | `destination.address == "10.19.80.100" && destination.port == 53` |
+| `on port 53` | `source.port == 53 \|\| destination.port == 53` |
+| `type NEW,UPDATE` | `event.type == "NEW" \|\| event.type == "UPDATE"` |
+| `and` | `&&` |
+| `or` | `\|\|` |
+| `not type NEW` | `!(event.type == "NEW")` |
+| `drop any` | `drop true` alias `drop any` |
+| `log any` | `log true` alias `log any` |
+
+
 ## Best Practices
 
 1. **Order Matters**: Place more specific rules before general rules
-2. **Use `drop ANY` for Exclusive Logging**: When you want to log ONLY specific events, end with `drop ANY`
-3. **Use AND for Precision**: Combine multiple conditions to create precise filters
+2. **Use `drop any` for Exclusive Logging**: When you want to log ONLY specific events, end with `drop any`
+3. **Use `&&` for Precision**: Combine multiple conditions to create precise filters
 4. **Test Incrementally**: Start with simple rules and add complexity
 5. **Document Complex Rules**: Add comments in your deployment scripts
 6. **Use Parentheses**: Make precedence explicit in complex expressions
+7. **Quote Strings**: Always use double quotes for string literals
 
-## Case Insensitivity
+## Troubleshooting
 
-Keywords and identifiers are case-insensitive:
+### Common Errors
+
+**Error: "Syntax error: extraneous input"**
+- Make sure you're using CEL syntax, not the old DSL
+- Check that string comparisons use `==` instead of space-separated values
+
+**Error: "overlapping identifier for name 'type'"**
+- `type` is a reserved keyword in CEL
+- Use `event.type` instead
+
+**Error: "no matching overload"**
+- Check function arguments match the expected types
+- Ensure custom functions are called with correct parameters
+
+### Testing Filters
+
+Start with simple filters and gradually add complexity:
 
 ```bash
-# These are all equivalent
-log type NEW
-ALLOW TYPE NEW
-Allow Type New
-```
+# Start simple
+--filter 'log protocol == "TCP"'
 
-## Abbreviations
+# Add conditions
+--filter 'log protocol == "TCP" && destination.port == 443'
 
-Supported abbreviations:
-- `src` = `source`
-- `dst` = `dest` = `destination`
+# Add network checks
+--filter 'log protocol == "TCP" && is_network(destination.address, "PUBLIC")'
 
-```bash
-# These are equivalent
-deny src network PRIVATE
-drop source network PRIVATE
+# Add final drop rule
+--filter 'log protocol == "TCP" && is_network(destination.address, "PUBLIC")'
+--filter "drop any"
 ```

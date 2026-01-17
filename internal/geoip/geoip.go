@@ -12,11 +12,13 @@ import (
 	"github.com/oschwald/geoip2-golang/v2"
 )
 
+// GeoIP is a wrapper around the GeoIP2 City database reader.
 type GeoIP struct {
 	Reader   *geoip2.Reader
 	Database string
 }
 
+// Location represents geographical location information.
 type Location struct {
 	Country string
 	City    string
@@ -24,6 +26,8 @@ type Location struct {
 	Lon     float64
 }
 
+// NewGeoIP creates a new GeoIP instance by loading the specified GeoIP2 City
+// database file.
 func NewGeoIP(database string) (*GeoIP, error) {
 	reader, err := geoip2.Open(database)
 	if err != nil {
@@ -42,10 +46,13 @@ func NewGeoIP(database string) (*GeoIP, error) {
 	}, nil
 }
 
+// Close closes the GeoIP database reader.
 func (g *GeoIP) Close() error {
 	return g.Reader.Close()
 }
 
+// Location retrieves the geographical location information for the given IP
+// address. If no location data is found, it returns nil.
 func (g *GeoIP) Location(ip netip.Addr) *Location {
 	record, err := g.Reader.City(ip)
 	if err != nil {

@@ -14,6 +14,7 @@ import (
 	"github.com/tschaefer/conntrackd/internal/geoip"
 )
 
+// Record logs a conntrack event with optional geolocation data.
 func Record(event conntrack.Event, geo *geoip.GeoIP, logger *slog.Logger) {
 	slog.Debug("Conntrack Event", "data", event)
 
@@ -52,6 +53,7 @@ func Record(event conntrack.Event, geo *geoip.GeoIP, logger *slog.Logger) {
 	logger.Info(msg, append(record, location...)...)
 }
 
+// getProtocol returns the protocol name for the given conntrack event.
 func getProtocol(event conntrack.Event) string {
 	protocols := map[int]string{
 		syscall.IPPROTO_TCP: "TCP",
@@ -63,6 +65,7 @@ func getProtocol(event conntrack.Event) string {
 	return ""
 }
 
+// getType returns the event type as a string.
 func getType(event conntrack.Event) string {
 	switch event.Type {
 	case conntrack.EventNew:
@@ -76,6 +79,7 @@ func getType(event conntrack.Event) string {
 	}
 }
 
+// getTCPState returns the TCP state as a string if applicable.
 func getTCPState(event conntrack.Event) (string, bool) {
 	if event.Flow.ProtoInfo.TCP == nil {
 		return "", false
@@ -100,6 +104,7 @@ func getTCPState(event conntrack.Event) (string, bool) {
 	return "", true
 }
 
+// getLocation retrieves geolocation data for source and destination IPs.
 func getLocation(event conntrack.Event, geo *geoip.GeoIP) []any {
 	if geo == nil {
 		return nil
@@ -128,6 +133,7 @@ func getLocation(event conntrack.Event, geo *geoip.GeoIP) []any {
 	return location
 }
 
+// formatAddrPort formats an IP address and port into a string.
 func formatAddrPort(addr netip.Addr, port uint16) string {
 	if addr.Is6() {
 		return fmt.Sprintf("[%s]:%d", addr.String(), port)

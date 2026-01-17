@@ -11,13 +11,16 @@ import (
 	"os"
 )
 
+// Stream represents a standard output stream sink.
 type Stream struct {
 	Enable bool
 	Writer string
 }
 
+// Available stream writers
 var StreamWriters = []string{"stdout", "stderr", "discard"}
 
+// TargetStream creates a sink target for standard output streams.
 func (s *Stream) TargetStream(options *slog.HandlerOptions) (slog.Handler, error) {
 	writer := map[string]io.Writer{
 		"stdout":  os.Stdout,

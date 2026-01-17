@@ -10,10 +10,12 @@ import (
 	slogjournal "github.com/tschaefer/slog-journal"
 )
 
+// Journal represents a systemd journal logging sink.
 type Journal struct {
 	Enable bool
 }
 
+// TargetJournal creates a sink target for systemd journal logging.
 func (j *Journal) TargetJournal(options *slog.HandlerOptions) (slog.Handler, error) {
 	slogjournal.FieldPrefix = "EVENT"
 	o := &slogjournal.Option{
