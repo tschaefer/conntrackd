@@ -148,8 +148,8 @@ log:
   level: "info"
 
 filter:
-  - "log protocol tcp and destination network public"
-  - "drop any"
+  - 'log protocol == "TCP" && is_network(destination.address, "PUBLIC")'
+  - 'drop any'
 
 sink:
   stream:
