@@ -38,8 +38,13 @@ sink:
 	err = InitConfig(tmpfile.Name())
 	assert.NoError(t, err)
 
+	db, ok := os.LookupEnv("CONNTRACKD_GEOIP_DATABASE")
+	if !ok || db == "" {
+		db = "/path/to/db.mmdb"
+	}
+
 	assert.Equal(t, "debug", viper.GetString("log.level"))
-	assert.Equal(t, "/path/to/db.mmdb", viper.GetString("geoip.database"))
+	assert.Equal(t, db, viper.GetString("geoip.database"))
 	assert.Equal(t, []any{"drop any"}, viper.Get("filter"))
 	assert.Equal(t, true, viper.GetBool("sink.stream.enable"))
 	assert.Equal(t, "stdout", viper.GetString("sink.stream.writer"))
