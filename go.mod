@@ -10,7 +10,7 @@ require (
 	github.com/mdlayher/netlink v1.8.0
 	github.com/oschwald/geoip2-golang/v2 v2.1.0
 	github.com/prometheus/common v0.67.5
-	github.com/samber/slog-common v0.19.0
+	github.com/samber/slog-common v0.20.0
 	github.com/samber/slog-loki/v3 v3.7.0
 	github.com/samber/slog-multi v1.7.0
 	github.com/samber/slog-syslog/v2 v2.5.2
