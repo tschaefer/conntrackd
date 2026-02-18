@@ -11,7 +11,7 @@ require (
 	github.com/oschwald/geoip2-golang/v2 v2.1.0
 	github.com/prometheus/common v0.67.5
 	github.com/samber/slog-common v0.20.0
-	github.com/samber/slog-loki/v3 v3.7.0
+	github.com/samber/slog-loki/v3 v3.7.1
 	github.com/samber/slog-multi v1.7.1
 	github.com/samber/slog-syslog/v2 v2.5.3
 	github.com/spf13/cobra v1.10.2
