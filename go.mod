@@ -10,10 +10,10 @@ require (
 	github.com/mdlayher/netlink v1.9.0
 	github.com/oschwald/geoip2-golang/v2 v2.1.0
 	github.com/prometheus/common v0.67.5
-	github.com/samber/slog-common v0.20.0
+	github.com/samber/slog-common v0.21.0
 	github.com/samber/slog-loki/v3 v3.7.1
 	github.com/samber/slog-multi v1.7.1
-	github.com/samber/slog-syslog/v2 v2.5.3
+	github.com/samber/slog-syslog/v2 v2.5.4
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
@@ -63,7 +63,7 @@ require (
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/prometheus/prometheus v0.35.0 // indirect
 	github.com/sagikazarmark/locafero v0.11.0 // indirect
-	github.com/samber/lo v1.52.0 // indirect
+	github.com/samber/lo v1.53.0 // indirect
 	github.com/sourcegraph/conc v0.3.1-0.20240121214520-5f936abd7ae8 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
