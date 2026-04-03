@@ -1064,8 +1064,8 @@ github.com/samber/slog-common v0.21.0 h1:Wo2hTly1Br5RjYqX/BTWJJeDnTE85oWk/7vqlpZ
 github.com/samber/slog-common v0.21.0/go.mod h1:d/6OaSlzdkl9PFpfRLgn8FwY1OW6EFmPtBpsHX4MrU0=
 github.com/samber/slog-loki/v3 v3.7.2 h1:VBdo1zHlE7MtVYtrFgNMBpG4yRXqaAadY6mF0bgpdSc=
 github.com/samber/slog-loki/v3 v3.7.2/go.mod h1:Cb2/arSlx+ojyMJ4LJFWFzi6k0xFftOZWroPMyjWcMA=
-github.com/samber/slog-multi v1.7.1 h1:aCLXHRxgU+2v0PVlEOh7phynzM7CRo89ZgFtOwaqVEE=
-github.com/samber/slog-multi v1.7.1/go.mod h1:A4KQC99deqfkCDJcL/cO3kX6McX7FffQAx/8QHink+c=
+github.com/samber/slog-multi v1.8.0 h1:E05c1wnQ+8M58oQDBABlJ4TEIJWssNgtckso3zlaLlI=
+github.com/samber/slog-multi v1.8.0/go.mod h1:6+3j/ILxDvAcLD75YdQAm6iKWu6AmwlohLgQxL/2aiI=
 github.com/samber/slog-syslog/v2 v2.5.4 h1:DOiE9jGV3Pg0EJ0qwfpod9chNqEJEUq73dYC9HwpgjY=
 github.com/samber/slog-syslog/v2 v2.5.4/go.mod h1:UklIWLpMtUGSj0JGTeTeSdF+ZW4TMFjwtGK00yIOCe8=
 github.com/samuel/go-zookeeper v0.0.0-20190923202752-2cc03de413da/go.mod h1:gi+0XIa01GRL2eRQVjQkKGqKF3SF9vZR/HnPullcV2E=
