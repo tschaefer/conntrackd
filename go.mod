@@ -11,7 +11,7 @@ require (
 	github.com/oschwald/geoip2-golang/v2 v2.1.0
 	github.com/prometheus/common v0.67.5
 	github.com/samber/slog-common v0.21.0
-	github.com/samber/slog-loki/v3 v3.7.1
+	github.com/samber/slog-loki/v3 v3.7.2
 	github.com/samber/slog-multi v1.7.1
 	github.com/samber/slog-syslog/v2 v2.5.4
 	github.com/spf13/cobra v1.10.2
@@ -78,9 +78,9 @@ require (
 	golang.org/x/oauth2 v0.34.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20240826202546-f6391c0de4c7 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240826202546-f6391c0de4c7 // indirect
-	google.golang.org/grpc v1.65.0 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20251202230838-ff82c1b0f217 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20251202230838-ff82c1b0f217 // indirect
+	google.golang.org/grpc v1.79.3 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
