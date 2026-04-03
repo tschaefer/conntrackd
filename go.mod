@@ -7,7 +7,7 @@ require (
 	github.com/google/cel-go v0.27.0
 	github.com/grafana/loki-client-go v0.0.0-20251015150631-c42bbddc310a
 	github.com/grafana/pyroscope-go v1.2.8
-	github.com/mdlayher/netlink v1.9.0
+	github.com/mdlayher/netlink v1.10.0
 	github.com/oschwald/geoip2-golang/v2 v2.1.0
 	github.com/prometheus/common v0.67.5
 	github.com/samber/slog-common v0.22.0
