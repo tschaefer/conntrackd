@@ -4,7 +4,7 @@ go 1.26.1
 
 require (
 	github.com/go-kit/log v0.2.1
-	github.com/google/cel-go v0.27.0
+	github.com/google/cel-go v0.28.0
 	github.com/grafana/loki-client-go v0.0.0-20251015150631-c42bbddc310a
 	github.com/grafana/pyroscope-go v1.2.8
 	github.com/mdlayher/netlink v1.9.0
