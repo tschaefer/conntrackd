@@ -6,7 +6,7 @@ require (
 	github.com/go-kit/log v0.2.1
 	github.com/google/cel-go v0.28.1
 	github.com/grafana/loki-client-go v0.0.0-20251015150631-c42bbddc310a
-	github.com/grafana/pyroscope-go v1.3.0
+	github.com/grafana/pyroscope-go v1.3.1
 	github.com/mdlayher/netlink v1.11.2
 	github.com/oschwald/geoip2-golang/v2 v2.2.0
 	github.com/prometheus/common v0.67.5
@@ -41,7 +41,7 @@ require (
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/grafana/loki/pkg/push v0.0.0-20240912152814-63e84b476a9a // indirect
-	github.com/grafana/pyroscope-go/godeltaprof v0.1.10 // indirect
+	github.com/grafana/pyroscope-go/godeltaprof v0.1.11 // indirect
 	github.com/grafana/regexp v0.0.0-20220304095617-2e8d9baf4ac2 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
