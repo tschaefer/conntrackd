@@ -9,7 +9,7 @@ require (
 	github.com/grafana/pyroscope-go v1.3.1
 	github.com/mdlayher/netlink v1.11.2
 	github.com/oschwald/geoip2-golang/v2 v2.2.0
-	github.com/prometheus/common v0.68.1
+	github.com/prometheus/common v0.69.0
 	github.com/samber/slog-common v0.22.0
 	github.com/samber/slog-loki/v3 v3.7.2
 	github.com/samber/slog-multi v1.8.0
