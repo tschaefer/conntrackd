@@ -647,8 +647,8 @@ github.com/grafana/loki-client-go v0.0.0-20251015150631-c42bbddc310a h1:iiKc9C+1
 github.com/grafana/loki-client-go v0.0.0-20251015150631-c42bbddc310a/go.mod h1:ZXSe0Hy5fQPZP6B9134/g33za4TTEJm4yj0utRb8H+8=
 github.com/grafana/loki/pkg/push v0.0.0-20240912152814-63e84b476a9a h1:azssgwCZo0RpSGECl9oi8mqv/x1yCkMh1B7WxjCWk/w=
 github.com/grafana/loki/pkg/push v0.0.0-20240912152814-63e84b476a9a/go.mod h1:lJEF/Wh5MYlmBem6tOYAFObkLsuikfrEf8Iy9AdMPiQ=
-github.com/grafana/pyroscope-go v1.4.0 h1:WD0vVpwdmj206XaHyt0dO+N82Ae3PXVGF/I8Kvux5Lo=
-github.com/grafana/pyroscope-go v1.4.0/go.mod h1:YiILNniTN5GG9QcJRskdAyZPUN8DGWtGLI5aq29Re7E=
+github.com/grafana/pyroscope-go v1.4.1 h1:SKvuZz1qTFpNXjHY3XGlm92mS9wJeCI/TZR42XcDs9w=
+github.com/grafana/pyroscope-go v1.4.1/go.mod h1:WQY21vHNiD2o/icxqVPM0AmofabycbhnPPHoV1/4X6s=
 github.com/grafana/pyroscope-go/godeltaprof v0.1.11 h1:el5LYpXissAiCKZ5/6yjlr6mhYVV6Cp5lahTocxraXM=
 github.com/grafana/pyroscope-go/godeltaprof v0.1.11/go.mod h1:jl1V8M4cWsXciROCPIDDG7CtjSjT/ECbp6eLVuMxYRI=
 github.com/grafana/regexp v0.0.0-20220304095617-2e8d9baf4ac2 h1:uirlL/j72L93RhV4+mkWhjv0cov2I0MIgPOG9rMDr1k=
