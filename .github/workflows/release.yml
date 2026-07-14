@@ -35,7 +35,7 @@ jobs:
       - name: Create SHA256 checksums
         run: make checksum
       - name: Upload binaries and checksums
-        uses: alexellis/upload-assets@0.4.1
+        uses: alexellis/upload-assets@0.5.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
