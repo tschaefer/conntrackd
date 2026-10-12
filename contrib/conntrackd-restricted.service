@@ -1,0 +1,40 @@
+[Unit]
+Description=Conntrack event logger with GEO location
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/conntrackd run --socket.listen-all-namespaces
+
+## Restart policy
+Restart=on-failure
+RestartSec=5s
+
+## Filesystem hardening
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+## Privilege hardening
+NoNewPrivileges=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectHostname=yes
+LockPersonality=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+RemoveIPC=yes
+
+## Resource limits
+MemoryMax=512M
+TasksMax=100
+
+## Unprivileged user with restricted capabilities
+DynamicUser=yes
+CapabilityBoundingSet=CAP_NET_ADMIN
+AmbientCapabilities=CAP_NET_ADMIN
+
+[Install]
+WantedBy=multi-user.target

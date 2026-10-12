@@ -21,23 +21,29 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+type Options struct {
+	ListenAllNamespaces bool
+}
+
 // Service represents the conntrack service.
 type Service struct {
-	Filter *filter.Filter
-	GeoIP  *geoip.GeoIP
-	Sink   *sink.Sink
-	Logger *slog.Logger
+	Filter  *filter.Filter
+	GeoIP   *geoip.GeoIP
+	Sink    *sink.Sink
+	Logger  *slog.Logger
+	Options *Options
 }
 
 // NewService creates a new conntrack service.
-func NewService(logger *logger.Logger, geoip *geoip.GeoIP, filter *filter.Filter, sink *sink.Sink) (*Service, error) {
+func NewService(logger *logger.Logger, geoip *geoip.GeoIP, filter *filter.Filter, sink *sink.Sink, options *Options) (*Service, error) {
 	slog.SetDefault(logger.Logger)
 
 	return &Service{
-		Filter: filter,
-		GeoIP:  geoip,
-		Sink:   sink,
-		Logger: logger.Logger,
+		Filter:  filter,
+		GeoIP:   geoip,
+		Sink:    sink,
+		Logger:  logger.Logger,
+		Options: options,
 	}, nil
 }
 
@@ -75,7 +81,12 @@ func (s *Service) setupConntrack() (*conntrack.Conn, error) {
 		return nil, err
 	}
 
-	if err := con.SetOption(netlink.ListenAllNSID|netlink.NoENOBUFS, true); err != nil {
+	socketOptions := netlink.NoENOBUFS
+	if s.Options.ListenAllNamespaces {
+		socketOptions = socketOptions | netlink.ListenAllNSID
+	}
+
+	if err := con.SetOption(socketOptions, true); err != nil {
 		_ = con.Close()
 		slog.Error("Failed to set conntrack listen options.", "error", err)
 		return nil, err

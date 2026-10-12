@@ -54,14 +54,14 @@ func newReturnsService(t *testing.T) {
 		t.Fatalf("failed to create logger: %v", err)
 	}
 
-	svc, err := NewService(logger, nil, nil, nil)
+	svc, err := NewService(logger, nil, nil, nil, &Options{})
 	assert.NoError(t, err)
 	assert.NotNil(t, svc)
 }
 
 func processEventDoesNotRecordIfEventNotTCPorUDP(t *testing.T) {
 	sink, logger, record := __setupSinkAndLogger(t)
-	svc, err := NewService(logger, nil, nil, sink)
+	svc, err := NewService(logger, nil, nil, sink, &Options{})
 	if err != nil {
 		t.Fatalf("failed to create service: %v", err)
 	}
@@ -73,7 +73,7 @@ func processEventDoesNotRecordIfEventNotTCPorUDP(t *testing.T) {
 
 func processEventDoesRecordIfEventTCPorUDP(t *testing.T) {
 	sink, logger, record := __setupSinkAndLogger(t)
-	svc, err := NewService(logger, nil, nil, sink)
+	svc, err := NewService(logger, nil, nil, sink, &Options{})
 	if err != nil {
 		t.Fatalf("failed to create service: %v", err)
 	}
@@ -94,7 +94,7 @@ func processEventDoesNotRecordIfFilteredOut(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create filter: %v", err)
 	}
-	svc, err := NewService(logger, nil, filter, sink)
+	svc, err := NewService(logger, nil, filter, sink, &Options{})
 	if err != nil {
 		t.Fatalf("failed to create service: %v", err)
 	}
@@ -106,7 +106,7 @@ func processEventDoesNotRecordIfFilteredOut(t *testing.T) {
 
 func startEventProcessorStartsGoroutine(t *testing.T) {
 	sink, logger, _ := __setupSinkAndLogger(t)
-	svc, err := NewService(logger, nil, nil, sink)
+	svc, err := NewService(logger, nil, nil, sink, &Options{})
 	if err != nil {
 		t.Fatalf("failed to create service: %v", err)
 	}
@@ -120,7 +120,7 @@ func startEventProcessorStartsGoroutine(t *testing.T) {
 
 func startEventProcessorDoesRecordOnEvent(t *testing.T) {
 	sink, logger, record := __setupSinkAndLogger(t)
-	svc, err := NewService(logger, nil, nil, sink)
+	svc, err := NewService(logger, nil, nil, sink, &Options{})
 	if err != nil {
 		t.Fatalf("failed to create service: %v", err)
 	}

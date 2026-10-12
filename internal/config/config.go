@@ -25,7 +25,7 @@ func InitConfig(cfgFile string) error {
 
 	viper.AutomaticEnv()
 	viper.SetEnvPrefix("CONNTRACKD")
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
