@@ -10,10 +10,15 @@
 # All configuration options can be overridden by command-line flags or
 # environment variables.
 
-# Log level: debug, info, warn, error (default: info)
 ---
+# Log level: debug, info, warn, error (default: info)
 log:
   level: info
+
+# socket options
+socket:
+  # listen to all network namespaces (default: true)
+  listen-all-namespaces: false
 
 # Path to GeoIP database (optional)
 # Download from: https://git.io/GeoLite2-City.mmdb

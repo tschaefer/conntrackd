@@ -1,6 +1,6 @@
 module github.com/tschaefer/conntrackd
 
-go 1.26.1
+go 1.27.1
 
 require (
 	github.com/go-kit/log v0.2.1

@@ -2,7 +2,6 @@
 
 [![Tag](https://img.shields.io/github/tag/tschaefer/conntrackd.svg)](https://github.com/tschaefer/conntrackd/releases)
 ![Go Version](https://img.shields.io/badge/Go-%3E%3D%201.25-%23007d9c)
-[![Go Report Card](https://goreportcard.com/badge/github.com/tschaefer/conntrackd)](https://goreportcard.com/report/github.com/tschaefer/conntrackd)
 [![Coverage](https://img.shields.io/codecov/c/github/tschaefer/conntrackd)](https://codecov.io/gh/tschaefer/conntrackd)
 [![Contributors](https://img.shields.io/github/contributors/tschaefer/conntrackd)](https://github.com/tschaefer/conntrackd/graphs/contributors)
 [![License](https://img.shields.io/github/license/tschaefer/conntrackd)](./LICENSE)
@@ -40,6 +39,16 @@ Start the event listener and logger.
 sudo conntrackd run --sink.journal.enable
 ```
 For further configuration, see the command-line options below.
+
+## Socket options
+
+By default conntrackd listens to all kernel namespaces which requires root
+privilleges. This allows to log host and container platforms
+(e.g. Docker, Kubernetes) events.
+
+You can switch the flag `--socket.listen-all-namespaces` to false, whith that
+conntrackd listens to host events only and can be run as unprivileged user
+with the capability `CAP_NET_ADMIN`.
 
 ## Filtering
 
@@ -125,6 +134,7 @@ sudo -E conntrackd run
 
 Use underscores (`_`) to represent nested keys:
 `sink.stream.writer` → `CONNTRACKD_SINK_STREAM_WRITER`
+`socket.listen-all-namespaces` → `CONNTRACKD_SOCKET_LISTEN_ALL_NAMESPACES`
 
 ### Priority Order
 
@@ -140,22 +150,23 @@ Configuration values are applied in the following order
 
 ## Configuration Flags
 
-| Flag                    | Description                                       | Default                  |
-|-------------------------|---------------------------------------------------|--------------------------|
-| `--config`              | Path to configuration file                        |                          |
-| `--filter`              | Filter rule in DSL format (repeatable)            |                          |
-| `--geoip.database`      | Path to GeoIP database                            |                          |
-| `--log.level`           | Log level (debug, info, warn, error)              | info                     |
-| `--sink.journal.enable` | Enable journald sink                              |                          |
-| `--sink.syslog.enable`  | Enable syslog sink                                |                          |
-| `--sink.loki.enable`    | Enable Loki sink                                  |                          |
-| `--sink.stream.enable`  | Enable stream sink                                |                          |
-| `--sink.syslog.address` | Syslog address                                    | udp://localhost:514      |
-| `--sink.loki.address`   | Loki address                                      | http://localhost:3100    |
-| `--sink.loki.labels`    | Loki labels (comma-separated key=value pairs)     |                          |
-| `--sink.stream.writer`  | Stream writer (stdout, stderr, discard)           | stdout                   |
-| `--profiler.enable`     | Enable continous profiling                        |                          |
-| `--profiler.address`    | Pyroscope server address                          | http://localhost:4040    |
+| Flag                             | Description                                   | Default               |
+|----------------------------------|-----------------------------------------------|-----------------------|
+| `--config`                       | Path to configuration file                    |                       |
+| `--filter`                       | Filter rule in DSL format (repeatable)        |                       |
+| `--geoip.database`               | Path to GeoIP database                        |                       |
+| `--log.level`                    | Log level (debug, info, warn, error)          | info                  |
+| `--socket.listen-all-namespaces` | Socket listen to all namespaces               | true                  |
+| `--sink.journal.enable`          | Enable journald sink                          |                       |
+| `--sink.syslog.enable`           | Enable syslog sink                            |                       |
+| `--sink.loki.enable`             | Enable Loki sink                              |                       |
+| `--sink.stream.enable`           | Enable stream sink                            |                       |
+| `--sink.syslog.address`          | Syslog address                                | udp://localhost:514   |
+| `--sink.loki.address`            | Loki address                                  | http://localhost:3100 |
+| `--sink.loki.labels`             | Loki labels (comma-separated key=value pairs) |                       |
+| `--sink.stream.writer`           | Stream writer (stdout, stderr, discard)       | stdout                |
+| `--profiler.enable`              | Enable continous profiling                    |                       |
+| `--profiler.address`             | Pyroscope server address                      | http://localhost:4040 |
 
 ## Logging format
 

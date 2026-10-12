@@ -76,7 +76,11 @@ var runCmd = &cobra.Command{
 			cobra.CheckErr(fmt.Sprintf("failed to initialize sink: %v", err))
 		}
 
-		service, err := service.NewService(l, g, f, s)
+		o := &service.Options{
+			ListenAllNamespaces: viper.GetBool("socket.listen-all-namespaces"),
+		}
+
+		service, err := service.NewService(l, g, f, s, o)
 		cobra.CheckErr(err)
 
 		ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -160,4 +164,6 @@ func init() {
 	runCmd.Flags().String("profiler.address", "http://localhost:4040", "Profiler server address")
 	_ = viper.BindPFlag("profiler.address", runCmd.Flags().Lookup("profiler.address"))
 
+	runCmd.Flags().Bool("socket.listen-all-namespaces", true, "Socket listen to all namespaces")
+	_ = viper.BindPFlag("socket.listen-all-namespaces", runCmd.Flags().Lookup("socket.listen-all-namespaces"))
 }
